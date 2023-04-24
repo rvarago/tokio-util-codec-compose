@@ -53,6 +53,40 @@ pub struct U16LE;
 #[derive(Debug, Default)]
 pub struct U16BE;
 
+/// Codec for [`u32`] little-endian.
+///
+/// # Examples
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Decoder;
+/// # use tokio_util_codec_compose::elements::ints::U32LE;
+/// let mut decoder = U32LE::default();
+///
+/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();
+///
+/// assert_eq!(res, Some(0x5D4C3B2A))
+/// ```
+#[derive(Debug, Default)]
+pub struct U32LE;
+
+/// Codec for [`u32`] big-endian.
+///
+/// # Examples
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Decoder;
+/// # use tokio_util_codec_compose::elements::ints::U32BE;
+/// let mut decoder = U32BE::default();
+///
+/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();
+///
+/// assert_eq!(res, Some(0x2A3B4C5D))
+/// ```
+#[derive(Debug, Default)]
+pub struct U32BE;
+
 macro_rules! impl_decoder {
     ($type:ty, $value:ty, $len:expr, $get:ident) => {
         impl ::tokio_util::codec::Decoder for $type {
@@ -77,6 +111,8 @@ macro_rules! impl_decoder {
 impl_decoder!(U8, u8, 1, get_u8);
 impl_decoder!(U16LE, u16, 2, get_u16_le);
 impl_decoder!(U16BE, u16, 2, get_u16);
+impl_decoder!(U32LE, u32, 4, get_u32_le);
+impl_decoder!(U32BE, u32, 4, get_u32);
 
 #[cfg(test)]
 mod tests {
