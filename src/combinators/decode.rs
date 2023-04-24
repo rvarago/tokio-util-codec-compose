@@ -14,31 +14,13 @@ pub trait DecoderExt<A, E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::{BytesMut, Buf};
-    /// # use tokio_util_codec_compose::combinators::DecoderExt;
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
+    ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// struct Device(u8);
     ///
-    /// fn uint8() -> impl Decoder<Item = u8, Error = std::io::Error> {
-    ///     // todo!()
-    /// #     struct U8;
-    /// #     impl Decoder for U8 {
-    /// #         type Item = u8;
-    /// #
-    /// #         type Error = std::io::Error;
-    /// #
-    /// #         fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-    /// #             if src.len() < 1 {
-    /// #                 Ok(None)
-    /// #             } else {
-    /// #                 Ok(src.get_u8().into())
-    /// #             }
-    /// #         }
-    /// #     }
-    /// #     U8
-    /// }
-    ///
     /// let device = uint8().map(Device).decode(&mut BytesMut::from("\x2A")).unwrap();
-    /// assert_eq!(device, Some(Device(42)))
+    /// assert_eq!(device, Some(Device(42)));
     /// ```
     fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
     where
