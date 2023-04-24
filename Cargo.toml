@@ -9,4 +9,5 @@ bytes = "1"
 tokio-util = { version = "0.7", features = [ "codec" ]}
 
 [dev-dependencies]
+anyhow = "1"
 proptest = "1"

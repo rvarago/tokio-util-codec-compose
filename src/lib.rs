@@ -1,4 +1,5 @@
 pub mod combinators;
+pub mod elements;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
