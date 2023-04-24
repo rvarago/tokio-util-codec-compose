@@ -40,7 +40,7 @@ pub trait DecoderExt<A, E> {
     /// let device = uint8().map(Device).decode(&mut BytesMut::from("\x2A")).unwrap();
     /// assert_eq!(device, Some(Device(42)))
     /// ```
-    fn map<B, F>(self, f: F) -> DecoderMap<Self, F>
+    fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
     where
         F: Fn(A) -> B,
         F: 'static,
@@ -52,7 +52,7 @@ where
     D: Decoder<Item = A, Error = E>,
     D: 'static,
 {
-    fn map<B, F>(self, f: F) -> DecoderMap<Self, F>
+    fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
     where
         F: Fn(A) -> B,
         F: 'static,
