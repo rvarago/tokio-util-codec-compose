@@ -2,7 +2,7 @@
 
 use bytes::Buf;
 
-/// Codec for [`u8`].
+/// Codec for an [`u8`].
 ///
 /// # Examples
 ///
@@ -19,7 +19,7 @@ use bytes::Buf;
 #[derive(Debug, Default)]
 pub struct U8;
 
-/// Codec for [`u16`] little-endian.
+/// Codec for an [`u16`] little-endian.
 ///
 /// # Examples
 ///
@@ -36,7 +36,7 @@ pub struct U8;
 #[derive(Debug, Default)]
 pub struct U16LE;
 
-/// Codec for [`u16`] big-endian.
+/// Codec for an [`u16`] big-endian.
 ///
 /// # Examples
 ///
@@ -53,7 +53,7 @@ pub struct U16LE;
 #[derive(Debug, Default)]
 pub struct U16BE;
 
-/// Codec for [`u32`] little-endian.
+/// Codec for an [`u32`] little-endian.
 ///
 /// # Examples
 ///
@@ -70,7 +70,7 @@ pub struct U16BE;
 #[derive(Debug, Default)]
 pub struct U32LE;
 
-/// Codec for [`u32`] big-endian.
+/// Codec for an [`u32`] big-endian.
 ///
 /// # Examples
 ///
