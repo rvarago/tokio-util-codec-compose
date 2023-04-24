@@ -159,4 +159,30 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn u32be_decode() -> Result<()> {
+        let mut decoder = U32BE::default();
+        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
+
+        let res = decoder.decode(&mut src)?;
+
+        assert_eq!(res, Some(0x2A3B0102));
+        assert_eq!(src, BytesMut::from("\x03"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn u32le_decode() -> Result<()> {
+        let mut decoder = U32LE::default();
+        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
+
+        let res = decoder.decode(&mut src)?;
+
+        assert_eq!(res, Some(0x02013B2A));
+        assert_eq!(src, BytesMut::from("\x03"));
+
+        Ok(())
+    }
 }
