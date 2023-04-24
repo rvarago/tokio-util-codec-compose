@@ -19,23 +19,6 @@ use bytes::Buf;
 #[derive(Debug, Default)]
 pub struct U8;
 
-/// Codec for an [`u16`] little-endian.
-///
-/// # Examples
-///
-/// ```
-/// # use bytes::BytesMut;
-/// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::elements::ints::U16LE;
-/// let mut decoder = U16LE::default();
-///
-/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
-///
-/// assert_eq!(res, Some(0x3B2A))
-/// ```
-#[derive(Debug, Default)]
-pub struct U16LE;
-
 /// Codec for an [`u16`] big-endian.
 ///
 /// # Examples
@@ -53,22 +36,22 @@ pub struct U16LE;
 #[derive(Debug, Default)]
 pub struct U16BE;
 
-/// Codec for an [`u32`] little-endian.
+/// Codec for an [`u16`] little-endian.
 ///
 /// # Examples
 ///
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::elements::ints::U32LE;
-/// let mut decoder = U32LE::default();
+/// # use tokio_util_codec_compose::elements::ints::U16LE;
+/// let mut decoder = U16LE::default();
 ///
-/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();
+/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
 ///
-/// assert_eq!(res, Some(0x5D4C3B2A))
+/// assert_eq!(res, Some(0x3B2A))
 /// ```
 #[derive(Debug, Default)]
-pub struct U32LE;
+pub struct U16LE;
 
 /// Codec for an [`u32`] big-endian.
 ///
@@ -86,6 +69,23 @@ pub struct U32LE;
 /// ```
 #[derive(Debug, Default)]
 pub struct U32BE;
+
+/// Codec for an [`u32`] little-endian.
+///
+/// # Examples
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Decoder;
+/// # use tokio_util_codec_compose::elements::ints::U32LE;
+/// let mut decoder = U32LE::default();
+///
+/// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();
+///
+/// assert_eq!(res, Some(0x5D4C3B2A))
+/// ```
+#[derive(Debug, Default)]
+pub struct U32LE;
 
 macro_rules! impl_decoder {
     ($type:ty, $value:ty, $len:expr, $get:ident) => {
@@ -109,10 +109,10 @@ macro_rules! impl_decoder {
 }
 
 impl_decoder!(U8, u8, 1, get_u8);
-impl_decoder!(U16LE, u16, 2, get_u16_le);
 impl_decoder!(U16BE, u16, 2, get_u16);
-impl_decoder!(U32LE, u32, 4, get_u32_le);
+impl_decoder!(U16LE, u16, 2, get_u16_le);
 impl_decoder!(U32BE, u32, 4, get_u32);
+impl_decoder!(U32LE, u32, 4, get_u32_le);
 
 #[cfg(test)]
 mod tests {
@@ -135,19 +135,6 @@ mod tests {
     }
 
     #[test]
-    fn u16le_decode() -> Result<()> {
-        let mut decoder = U16LE::default();
-        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
-
-        let res = decoder.decode(&mut src)?;
-
-        assert_eq!(res, Some(0x3B2A));
-        assert_eq!(src, BytesMut::from("\x01\x02\x03"));
-
-        Ok(())
-    }
-
-    #[test]
     fn u16be_decode() -> Result<()> {
         let mut decoder = U16BE::default();
         let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
@@ -155,6 +142,19 @@ mod tests {
         let res = decoder.decode(&mut src)?;
 
         assert_eq!(res, Some(0x2A3B));
+        assert_eq!(src, BytesMut::from("\x01\x02\x03"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn u16le_decode() -> Result<()> {
+        let mut decoder = U16LE::default();
+        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
+
+        let res = decoder.decode(&mut src)?;
+
+        assert_eq!(res, Some(0x3B2A));
         assert_eq!(src, BytesMut::from("\x01\x02\x03"));
 
         Ok(())
