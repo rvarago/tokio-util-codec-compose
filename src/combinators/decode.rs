@@ -86,6 +86,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct DecoderMap<D, F> {
     inner: D,
     f: F,
@@ -106,6 +107,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct DecoderAndThen<D, F> {
     inner: D,
     f: F,
