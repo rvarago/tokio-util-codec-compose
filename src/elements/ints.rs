@@ -1,8 +1,6 @@
 //! Codecs of integers.
 
-use bytes::{Buf, BytesMut};
-use std::io;
-use tokio_util::codec::Decoder;
+use bytes::Buf;
 
 /// Codec for [`u8`].
 ///
@@ -21,20 +19,6 @@ use tokio_util::codec::Decoder;
 #[derive(Debug, Default)]
 pub struct U8;
 
-impl Decoder for U8 {
-    type Item = u8;
-
-    type Error = io::Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 1 {
-            Ok(None)
-        } else {
-            Ok(src.get_u8().into())
-        }
-    }
-}
-
 /// Codec for [`u16`] little-endian.
 ///
 /// # Examples
@@ -51,20 +35,6 @@ impl Decoder for U8 {
 /// ```
 #[derive(Debug, Default)]
 pub struct U16LE;
-
-impl Decoder for U16LE {
-    type Item = u16;
-
-    type Error = io::Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 2 {
-            Ok(None)
-        } else {
-            Ok(src.get_u16_le().into())
-        }
-    }
-}
 
 /// Codec for [`u16`] big-endian.
 ///
@@ -83,25 +53,37 @@ impl Decoder for U16LE {
 #[derive(Debug, Default)]
 pub struct U16BE;
 
-impl Decoder for U16BE {
-    type Item = u16;
+macro_rules! impl_decoder {
+    ($type:ty, $value:ty, $len:expr, $get:ident) => {
+        impl ::tokio_util::codec::Decoder for $type {
+            type Item = $value;
 
-    type Error = io::Error;
+            type Error = std::io::Error;
 
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.len() < 2 {
-            Ok(None)
-        } else {
-            Ok(src.get_u16().into())
+            fn decode(
+                &mut self,
+                src: &mut ::bytes::BytesMut,
+            ) -> Result<Option<Self::Item>, Self::Error> {
+                if src.len() < $len {
+                    Ok(None)
+                } else {
+                    Ok(src.$get().into())
+                }
+            }
         }
-    }
+    };
 }
+
+impl_decoder!(U8, u8, 1, get_u8);
+impl_decoder!(U16LE, u16, 2, get_u16_le);
+impl_decoder!(U16BE, u16, 2, get_u16);
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::*;
+    use anyhow::Result;
+    use bytes::BytesMut;
+    use tokio_util::codec::Decoder;
 
     #[test]
     fn u8_decode() -> Result<()> {
