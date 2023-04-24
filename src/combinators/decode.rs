@@ -40,10 +40,11 @@ pub trait DecoderExt<A, E> {
     /// let device = uint8().map(Device).decode(&mut BytesMut::from("\x2A")).unwrap();
     /// assert_eq!(device, Some(Device(42)))
     /// ```
-    fn map<B, F>(self, f: F) -> DecoderMap<A, B, E>
+    fn map<B, F>(self, f: F) -> DecoderMap<Self, F>
     where
         F: Fn(A) -> B,
-        F: 'static;
+        F: 'static,
+        Self: Sized;
 }
 
 impl<D, A, E> DecoderExt<A, E> for D
@@ -51,25 +52,24 @@ where
     D: Decoder<Item = A, Error = E>,
     D: 'static,
 {
-    fn map<B, F>(self, f: F) -> DecoderMap<A, B, E>
+    fn map<B, F>(self, f: F) -> DecoderMap<Self, F>
     where
         F: Fn(A) -> B,
         F: 'static,
     {
-        DecoderMap {
-            inner: Box::new(self),
-            f: Box::new(f),
-        }
+        DecoderMap { inner: self, f }
     }
 }
 
-pub struct DecoderMap<A, B, E> {
-    inner: Box<dyn Decoder<Item = A, Error = E>>,
-    f: Box<dyn Fn(A) -> B>,
+pub struct DecoderMap<D, F> {
+    inner: D,
+    f: F,
 }
 
-impl<A, B, E> Decoder for DecoderMap<A, B, E>
+impl<D, F, A, B, E> Decoder for DecoderMap<D, F>
 where
+    D: Decoder<Item = A, Error = E>,
+    F: Fn(A) -> B,
     E: From<io::Error>,
 {
     type Item = B;
