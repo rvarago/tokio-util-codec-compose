@@ -27,6 +27,40 @@ pub trait DecoderExt<A, E> {
         F: Fn(A) -> B,
         F: 'static,
         Self: Sized;
+
+    /// Applies a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
+    ///
+    /// Contrary to [`map`], the function `f` can decide which decoder to return next according to `a`, which allows dynamic behaviors.
+    ///
+    /// The function `f` cannot fail.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tokio_util::codec::Decoder;
+    /// # use bytes::{BytesMut, Buf};
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::{uint8, uint16_be, uint16_le}};
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// struct Device(u16);
+    ///
+    /// fn payload_for_version(version: u8) -> Box<dyn Decoder<Item = u16, Error = std::io::Error>> {
+    ///     if version == 0x01 { Box::new(uint16_be()) } else { Box::new(uint16_le()) }
+    /// }
+    ///
+    /// let mut decoder = uint8().and_then(payload_for_version).map(Device);
+    ///
+    /// let device_big_endian = decoder.decode(&mut BytesMut::from("\x01\x2A\x3B")).unwrap();
+    /// assert_eq!(device_big_endian, Some(Device(0x2A3B)));
+    ///
+    /// let device_little_endian = decoder.decode(&mut BytesMut::from("\x00\x2A\x3B")).unwrap();
+    /// assert_eq!(device_little_endian, Some(Device(0x3B2A)));
+    /// ```
+    fn and_then<F, B>(self, f: F) -> DecoderAndThen<Self, F>
+    where
+        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
+        F: 'static,
+        Self: Sized;
 }
 
 impl<D, A, E> DecoderExt<A, E> for D
@@ -40,6 +74,15 @@ where
         F: 'static,
     {
         DecoderMap { inner: self, f }
+    }
+
+    fn and_then<F, B>(self, f: F) -> DecoderAndThen<Self, F>
+    where
+        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
+        F: 'static,
+        Self: Sized,
+    {
+        DecoderAndThen { inner: self, f }
     }
 }
 
@@ -60,6 +103,29 @@ where
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         Ok(self.inner.decode(src)?.map(&self.f))
+    }
+}
+
+pub struct DecoderAndThen<D, F> {
+    inner: D,
+    f: F,
+}
+
+impl<D, F, A, B, E> Decoder for DecoderAndThen<D, F>
+where
+    D: Decoder<Item = A, Error = E>,
+    F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
+    E: From<io::Error>,
+{
+    type Item = B;
+
+    type Error = E;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        self.inner
+            .decode(src)?
+            .and_then(|a| (self.f)(a).decode(src).transpose())
+            .transpose()
     }
 }
 
