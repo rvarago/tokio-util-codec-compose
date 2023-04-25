@@ -4,6 +4,7 @@ pub mod ints;
 
 use super::combinators::DecoderExt;
 
+use bytes::Bytes;
 use std::{io, net::Ipv4Addr};
 use tokio_util::codec::Decoder;
 
@@ -52,4 +53,18 @@ pub fn ipv4() -> impl Decoder<Item = Ipv4Addr, Error = io::Error> {
         .then(uint8())
         .then(uint8())
         .map(|(((a, b), c), d)| Ipv4Addr::new(a, b, c, d))
+}
+
+/// Shorthand notation to construct a decoder delimited by `seek_delimiters` up to length `max_length`.
+///
+/// Delegates to [`tokio_util::codec::AnyDelimiterCodec`].
+pub fn delimited_by(
+    seek_delimiters: Vec<u8>,
+    max_lenght: usize,
+) -> impl Decoder<Item = Bytes, Error = tokio_util::codec::AnyDelimiterCodecError> {
+    tokio_util::codec::AnyDelimiterCodec::new_with_max_length(
+        seek_delimiters.into(),
+        Vec::default(),
+        max_lenght,
+    )
 }
