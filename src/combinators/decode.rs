@@ -108,6 +108,19 @@ where
         DecoderMap { inner: self, f }
     }
 
+    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
+    where
+        DNext: Decoder<Item = B, Error = EE>,
+        EE: From<E>,
+        Self: Sized,
+    {
+        DecoderThen {
+            first: self,
+            second: next,
+            _error: PhantomData,
+        }
+    }
+
     fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, EE>
     where
         F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EE>>,
@@ -118,19 +131,6 @@ where
         DecoderAndThen {
             inner: self,
             f,
-            _error: PhantomData,
-        }
-    }
-
-    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
-    where
-        DNext: Decoder<Item = B, Error = EE>,
-        EE: From<E>,
-        Self: Sized,
-    {
-        DecoderThen {
-            first: self,
-            second: next,
             _error: PhantomData,
         }
     }
@@ -154,6 +154,33 @@ where
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         Ok(self.inner.decode(src)?.map(&self.f))
+    }
+}
+
+#[derive(Debug)]
+pub struct DecoderThen<DFirst, DSecond, E> {
+    first: DFirst,
+    second: DSecond,
+    _error: PhantomData<E>,
+}
+
+impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, EE>
+where
+    DFirst: Decoder<Item = A, Error = EA>,
+    DSecond: Decoder<Item = B, Error = EB>,
+    EA: From<io::Error>,
+    EB: From<io::Error>,
+    EE: From<io::Error> + From<EA> + From<EB>,
+{
+    type Item = (A, B);
+
+    type Error = EE;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        let opta = self.first.decode(src)?;
+        let optb = self.second.decode(src)?;
+
+        Ok(opta.zip(optb))
     }
 }
 
@@ -182,33 +209,6 @@ where
             .decode(src)?
             .and_then(|a| (self.f)(a).decode(src).transpose())
             .transpose()?)
-    }
-}
-
-#[derive(Debug)]
-pub struct DecoderThen<DFirst, DSecond, E> {
-    first: DFirst,
-    second: DSecond,
-    _error: PhantomData<E>,
-}
-
-impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, EE>
-where
-    DFirst: Decoder<Item = A, Error = EA>,
-    DSecond: Decoder<Item = B, Error = EB>,
-    EA: From<io::Error>,
-    EB: From<io::Error>,
-    EE: From<io::Error> + From<EA> + From<EB>,
-{
-    type Item = (A, B);
-
-    type Error = EE;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let opta = self.first.decode(src)?;
-        let optb = self.second.decode(src)?;
-
-        Ok(opta.zip(optb))
     }
 }
 
