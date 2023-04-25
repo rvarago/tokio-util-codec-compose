@@ -1,7 +1,7 @@
 //! Composition operations on [`Decoder`].
 
 use bytes::BytesMut;
-use std::io;
+use std::{io, marker::PhantomData};
 use tokio_util::codec::Decoder;
 
 pub trait DecoderExt<A, E> {
@@ -32,6 +32,8 @@ pub trait DecoderExt<A, E> {
     ///
     /// This enables the application of decoders in sequence where a step does not depend on its predecessor (when such a dependency exists, consider [`DecoderExt::and_then`].
     ///
+    /// The next decoder can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
+    ///
     /// # Examples
     ///
     /// ```
@@ -46,9 +48,10 @@ pub trait DecoderExt<A, E> {
     ///
     /// assert_eq!(device, Some(Device(0x2A, 0x3B)));
     /// ```
-    fn then<DNext, B>(self, next: DNext) -> DecoderThen<Self, DNext>
+    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
     where
-        DNext: Decoder<Item = B, Error = E>,
+        DNext: Decoder<Item = B, Error = EE>,
+        EE: From<E>,
         Self: Sized;
 
     /// Chains a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
@@ -57,6 +60,8 @@ pub trait DecoderExt<A, E> {
     /// out of simple building blocks by defining dependency relationships between decoders.
     /// e.g. first we decode the header of a message and use that information, say protocol version, to then select the appropriate
     /// decoder among multiple candidates, say one per protocol version, for the body.
+    ///
+    /// The next decoder can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
     ///
     /// The function `f` cannot fail.
     ///
@@ -82,10 +87,11 @@ pub trait DecoderExt<A, E> {
     /// let device_little_endian = decoder.decode(&mut BytesMut::from("\x00\x2A\x3B")).unwrap();
     /// assert_eq!(device_little_endian, Some(Device(0x3B2A)));
     /// ```
-    fn and_then<F, B>(self, f: F) -> DecoderAndThen<Self, F>
+    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, EE>
     where
-        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
+        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EE>>,
         F: 'static,
+        EE: From<E>,
         Self: Sized;
 }
 
@@ -102,23 +108,30 @@ where
         DecoderMap { inner: self, f }
     }
 
-    fn and_then<F, B>(self, f: F) -> DecoderAndThen<Self, F>
+    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, EE>
     where
-        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
+        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EE>>,
         F: 'static,
+        EE: From<E>,
         Self: Sized,
     {
-        DecoderAndThen { inner: self, f }
+        DecoderAndThen {
+            inner: self,
+            f,
+            _error: PhantomData,
+        }
     }
 
-    fn then<DNext, B>(self, next: DNext) -> DecoderThen<Self, DNext>
+    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
     where
-        DNext: Decoder<Item = B, Error = E>,
+        DNext: Decoder<Item = B, Error = EE>,
+        EE: From<E>,
         Self: Sized,
     {
         DecoderThen {
             first: self,
             second: next,
+            _error: PhantomData,
         }
     }
 }
@@ -145,44 +158,51 @@ where
 }
 
 #[derive(Debug)]
-pub struct DecoderAndThen<D, F> {
+pub struct DecoderAndThen<D, F, E> {
     inner: D,
     f: F,
+    _error: PhantomData<E>,
 }
 
-impl<D, F, A, B, E> Decoder for DecoderAndThen<D, F>
+impl<D, F, A, B, EA, EB, EE> Decoder for DecoderAndThen<D, F, EE>
 where
-    D: Decoder<Item = A, Error = E>,
-    F: Fn(A) -> Box<dyn Decoder<Item = B, Error = E>>,
-    E: From<io::Error>,
+    D: Decoder<Item = A, Error = EA>,
+    F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EB>>,
+    EA: From<io::Error>,
+    EB: From<io::Error>,
+    EE: From<io::Error> + From<EA> + From<EB>,
 {
     type Item = B;
 
-    type Error = E;
+    type Error = EE;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        self.inner
+        Ok(self
+            .inner
             .decode(src)?
             .and_then(|a| (self.f)(a).decode(src).transpose())
-            .transpose()
+            .transpose()?)
     }
 }
 
 #[derive(Debug)]
-pub struct DecoderThen<DFirst, DSecond> {
+pub struct DecoderThen<DFirst, DSecond, E> {
     first: DFirst,
     second: DSecond,
+    _error: PhantomData<E>,
 }
 
-impl<DFirst, DSecond, A, B, E> Decoder for DecoderThen<DFirst, DSecond>
+impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, EE>
 where
-    DFirst: Decoder<Item = A, Error = E>,
-    DSecond: Decoder<Item = B, Error = E>,
-    E: From<io::Error>,
+    DFirst: Decoder<Item = A, Error = EA>,
+    DSecond: Decoder<Item = B, Error = EB>,
+    EA: From<io::Error>,
+    EB: From<io::Error>,
+    EE: From<io::Error> + From<EA> + From<EB>,
 {
     type Item = (A, B);
 
-    type Error = E;
+    type Error = EE;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let opta = self.first.decode(src)?;
