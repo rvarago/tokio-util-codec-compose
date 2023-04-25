@@ -28,9 +28,32 @@ pub trait DecoderExt<A, E> {
         F: 'static,
         Self: Sized;
 
+    /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual outcomes `(a, b)`.
+    ///
+    /// This enables the application of decoders in sequence where a step does not depend on its predecessor (when such a dependency exists, consider [`DecoderExt::and_then`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tokio_util::codec::Decoder;
+    /// # use bytes::{BytesMut, Buf};
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// struct Device(u8, u8);
+    ///
+    /// let device = uint8().then(uint8()).map(|(a, b)| Device(a, b)).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
+    ///
+    /// assert_eq!(device, Some(Device(0x2A, 0x3B)));
+    /// ```
+    fn then<DNext, B>(self, next: DNext) -> DecoderThen<Self, DNext>
+    where
+        DNext: Decoder<Item = B, Error = E>,
+        Self: Sized;
+
     /// Chains a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
     ///
-    /// Contrary to [`map`], the function `f` can decide (dynamically) which decoder to return next according to `a`, which enables complex behaviors
+    /// Contrary to [`DecoderExt::map`], the function `f` can decide (dynamically) which decoder to return next according to `a`, which enables complex behaviors
     /// out of simple building blocks by defining dependency relationships between decoders.
     /// e.g. first we decode the header of a message and use that information, say protocol version, to then select the appropriate
     /// decoder among multiple candidates, say one per protocol version, for the body.
@@ -87,6 +110,17 @@ where
     {
         DecoderAndThen { inner: self, f }
     }
+
+    fn then<DNext, B>(self, next: DNext) -> DecoderThen<Self, DNext>
+    where
+        DNext: Decoder<Item = B, Error = E>,
+        Self: Sized,
+    {
+        DecoderThen {
+            first: self,
+            second: next,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -131,6 +165,30 @@ where
             .decode(src)?
             .and_then(|a| (self.f)(a).decode(src).transpose())
             .transpose()
+    }
+}
+
+#[derive(Debug)]
+pub struct DecoderThen<DFirst, DSecond> {
+    first: DFirst,
+    second: DSecond,
+}
+
+impl<DFirst, DSecond, A, B, E> Decoder for DecoderThen<DFirst, DSecond>
+where
+    DFirst: Decoder<Item = A, Error = E>,
+    DSecond: Decoder<Item = B, Error = E>,
+    E: From<io::Error>,
+{
+    type Item = (A, B);
+
+    type Error = E;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        let opta = self.first.decode(src)?;
+        let optb = self.second.decode(src)?;
+
+        Ok(opta.zip(optb))
     }
 }
 
