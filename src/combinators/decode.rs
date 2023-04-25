@@ -28,9 +28,12 @@ pub trait DecoderExt<A, E> {
         F: 'static,
         Self: Sized;
 
-    /// Applies a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
+    /// Chains a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
     ///
-    /// Contrary to [`map`], the function `f` can decide which decoder to return next according to `a`, which allows dynamic behaviors.
+    /// Contrary to [`map`], the function `f` can decide (dynamically) which decoder to return next according to `a`, which enables complex behaviors
+    /// out of simple building blocks by defining dependency relationships between decoders.
+    /// e.g. first we decode the header of a message and use that information, say protocol version, to then select the appropriate
+    /// decoder among multiple candidates, say one per protocol version, for the body.
     ///
     /// The function `f` cannot fail.
     ///
