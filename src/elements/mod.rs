@@ -59,7 +59,7 @@ pub fn ipv4() -> impl Decoder<Item = Ipv4Addr, Error = io::Error> {
 ///
 /// Delegates to [`tokio_util::codec::AnyDelimiterCodec`].
 pub fn delimited_by(
-    seek_delimiters: Vec<u8>,
+    seek_delimiters: impl Into<Vec<u8>>,
     max_lenght: usize,
 ) -> impl Decoder<Item = Bytes, Error = tokio_util::codec::AnyDelimiterCodecError> {
     tokio_util::codec::AnyDelimiterCodec::new_with_max_length(
