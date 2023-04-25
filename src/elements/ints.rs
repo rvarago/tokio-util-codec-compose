@@ -119,70 +119,86 @@ mod tests {
     use super::*;
     use anyhow::Result;
     use bytes::BytesMut;
+    use std::{error, fmt::Debug};
     use tokio_util::codec::Decoder;
 
     #[test]
     fn u8_decode() -> Result<()> {
-        let mut decoder = U8::default();
-        let mut src = BytesMut::from("\x2A\x00\x01\x02\x03");
-
-        let res = decoder.decode(&mut src)?;
-
-        assert_eq!(res, Some(0x2A));
-        assert_eq!(src, BytesMut::from("\x00\x01\x02\x03"));
-
-        Ok(())
+        check(CheckOpts {
+            decoder: U8::default(),
+            src: BytesMut::from("\x2A\x00\x01\x02\x03"),
+            expected_output: 0x2A,
+            expected_remainder: BytesMut::from("\x00\x01\x02\x03"),
+        })
     }
 
     #[test]
     fn u16be_decode() -> Result<()> {
-        let mut decoder = U16BE::default();
-        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
-
-        let res = decoder.decode(&mut src)?;
-
-        assert_eq!(res, Some(0x2A3B));
-        assert_eq!(src, BytesMut::from("\x01\x02\x03"));
-
-        Ok(())
+        check(CheckOpts {
+            decoder: U16BE::default(),
+            src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
+            expected_output: 0x2A3B,
+            expected_remainder: BytesMut::from("\x01\x02\x03"),
+        })
     }
 
     #[test]
     fn u16le_decode() -> Result<()> {
-        let mut decoder = U16LE::default();
-        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
-
-        let res = decoder.decode(&mut src)?;
-
-        assert_eq!(res, Some(0x3B2A));
-        assert_eq!(src, BytesMut::from("\x01\x02\x03"));
-
-        Ok(())
+        check(CheckOpts {
+            decoder: U16LE::default(),
+            src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
+            expected_output: 0x3B2A,
+            expected_remainder: BytesMut::from("\x01\x02\x03"),
+        })
     }
 
     #[test]
     fn u32be_decode() -> Result<()> {
-        let mut decoder = U32BE::default();
-        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
-
-        let res = decoder.decode(&mut src)?;
-
-        assert_eq!(res, Some(0x2A3B0102));
-        assert_eq!(src, BytesMut::from("\x03"));
-
-        Ok(())
+        check(CheckOpts {
+            decoder: U32BE::default(),
+            src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
+            expected_output: 0x2A3B0102,
+            expected_remainder: BytesMut::from("\x03"),
+        })
     }
 
     #[test]
     fn u32le_decode() -> Result<()> {
-        let mut decoder = U32LE::default();
-        let mut src = BytesMut::from("\x2A\x3B\x01\x02\x03");
+        check(CheckOpts {
+            decoder: U32LE::default(),
+            src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
+            expected_output: 0x02013B2A,
+            expected_remainder: BytesMut::from("\x03"),
+        })
+    }
 
-        let res = decoder.decode(&mut src)?;
+    #[track_caller]
+    fn check<D, A>(
+        CheckOpts {
+            mut decoder,
+            mut src,
+            expected_output,
+            expected_remainder,
+        }: CheckOpts<D, A>,
+    ) -> Result<()>
+    where
+        D: Decoder<Item = A>,
+        A: PartialEq + Debug,
+        D::Error: error::Error + Send + Sync + 'static,
+    {
+        let output = decoder.decode(&mut src)?;
 
-        assert_eq!(res, Some(0x02013B2A));
-        assert_eq!(src, BytesMut::from("\x03"));
+        assert_eq!(output, Some(expected_output));
+        assert_eq!(src, expected_remainder);
 
         Ok(())
+    }
+
+    #[derive(Debug)]
+    struct CheckOpts<D, A> {
+        decoder: D,
+        src: BytesMut,
+        expected_output: A,
+        expected_remainder: BytesMut,
     }
 }
