@@ -48,7 +48,7 @@ pub trait DecoderExt<A, E> {
     ///
     /// assert_eq!(device, Some(Device(0x2A, 0x3B)));
     /// ```
-    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
+    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
     where
         DNext: Decoder<Item = B, Error = EE>,
         EE: From<E>,
@@ -108,7 +108,7 @@ where
         DecoderMap { inner: self, f }
     }
 
-    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, EE>
+    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
     where
         DNext: Decoder<Item = B, Error = EE>,
         EE: From<E>,
@@ -117,6 +117,7 @@ where
         DecoderThen {
             first: self,
             second: next,
+            first_value: None,
             _error: PhantomData,
         }
     }
@@ -158,13 +159,14 @@ where
 }
 
 #[derive(Debug)]
-pub struct DecoderThen<DFirst, DSecond, E> {
+pub struct DecoderThen<DFirst, DSecond, A, E> {
     first: DFirst,
     second: DSecond,
+    first_value: Option<A>,
     _error: PhantomData<E>,
 }
 
-impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, EE>
+impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, A, EE>
 where
     DFirst: Decoder<Item = A, Error = EA>,
     DSecond: Decoder<Item = B, Error = EB>,
@@ -177,10 +179,21 @@ where
     type Error = EE;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let opta = self.first.decode(src)?;
-        let optb = self.second.decode(src)?;
+        if self.first_value.is_none() {
+            self.first_value = self.first.decode(src)?;
+        }
 
-        Ok(opta.zip(optb))
+        if self.first_value.is_some() {
+            let second_value = self.second.decode(src)?;
+            if second_value.is_none() {
+                Ok(None)
+            } else {
+                let first_value = self.first_value.take();
+                Ok(first_value.zip(second_value))
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -214,6 +227,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::elements::{uint16_be, uint8};
+
     use super::*;
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};
@@ -224,16 +239,16 @@ mod tests {
 
     proptest! {
         #[test]
-        fn check_law_map_id(src in bytes()) {
+        fn decode_map_check_law_map_id(src in bytes()) {
             // TODO: Generate multiple decoders synced with valid byte-sequences with success/failure.
             let src = BytesMut::from(src.as_slice());
             let decoder = BytesCodec::default();
-            law_map_id_succeed(decoder, src);
+            decode_map_law_map_id_succeed(decoder, src);
         }
     }
 
     #[track_caller]
-    fn law_map_id_succeed<D, A, E>(mut decoder: D, mut src: BytesMut)
+    fn decode_map_law_map_id_succeed<D, A, E>(mut decoder: D, mut src: BytesMut)
     where
         D: Decoder<Item = A, Error = E> + Clone + 'static,
         A: PartialEq + Debug + 'static,
@@ -251,5 +266,56 @@ mod tests {
 
     fn bytes() -> impl Strategy<Value = Vec<u8>> {
         proptest::collection::vec(any::<u8>(), 0..255)
+    }
+
+    #[test]
+    fn decode_then_single_pass() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().then(uint8());
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x0102, 0x03)));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_then_multiple_pass_with_first_decoder_full() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().then(uint8());
+
+        let mut src = BytesMut::from("\x01\x02");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, None);
+        assert_eq!(src, BytesMut::default());
+
+        let mut src = BytesMut::from("\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x0102, 0x03)));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_then_multiple_pass_with_first_decoder_waiting_for_more_bytes() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().then(uint8());
+
+        let mut src = BytesMut::from("\x01");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, None);
+        assert_eq!(src, BytesMut::from("\x01"));
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x0102, 0x03)));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
     }
 }
