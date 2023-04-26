@@ -183,16 +183,15 @@ where
             self.first_value = self.first.decode(src)?;
         }
 
-        if self.first_value.is_some() {
-            let second_value = self.second.decode(src)?;
-            if second_value.is_none() {
-                Ok(None)
-            } else {
-                let first_value = self.first_value.take();
-                Ok(first_value.zip(second_value))
-            }
+        let second_value = if self.first_value.is_none() {
+            None
         } else {
-            Ok(None)
+            self.second.decode(src)?
+        };
+
+        match (&mut self.first_value, second_value) {
+            both @ (Some(_), Some(_)) => Ok(both.0.take().zip(both.1)),
+            _ => Ok(None),
         }
     }
 }
