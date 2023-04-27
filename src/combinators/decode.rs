@@ -28,7 +28,7 @@ pub trait DecoderExt<A, E> {
         F: 'static,
         Self: Sized;
 
-    /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual outcomes `(a, b)`.
+    /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual values `(a, b)`.
     ///
     /// This enables the application of decoders in sequence where a step does not depend on its predecessor (when such a dependency exists, consider [`DecoderExt::and_then`].
     ///
@@ -54,7 +54,7 @@ pub trait DecoderExt<A, E> {
         EE: From<E>,
         Self: Sized;
 
-    /// Chains a function `f` of type `A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
+    /// Chains a function `f` of type `&A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
     ///
     /// Contrary to [`DecoderExt::map`], the function `f` can decide (dynamically) which decoder to return next according to `a`, which enables complex behaviors
     /// out of simple building blocks by defining dependency relationships between decoders.
@@ -65,6 +65,15 @@ pub trait DecoderExt<A, E> {
     ///
     /// The function `f` cannot fail.
     ///
+    /// Notice that `f` can't take ownership of the first value `a`, hence the shared borrow, because otherwise it would not be possible to decode incomplete frames
+    /// without cloning or maybe saving incoming bytes and re-running this decoder. If you need access to the first value, use [`DecoderAndThen::first_value`]
+    /// or [`DecoderAndThen::first_value_as_mut`].
+    ///
+    /// # Important
+    ///
+    /// Due to the stateful behaviour of this combinator, if you need to decode multiple frames, you'd need to [`DecoderAndThen::reset`] between frames to clean up
+    /// the previous value `a` and therefore its influence on `b`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -72,24 +81,23 @@ pub trait DecoderExt<A, E> {
     /// # use bytes::{BytesMut, Buf};
     /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::{uint8, uint16_be, uint16_le}};
     ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct Device(u16);
-    ///
-    /// fn payload_for_version(version: u8) -> Box<dyn Decoder<Item = u16, Error = std::io::Error>> {
-    ///     if version == 0x01 { Box::new(uint16_be()) } else { Box::new(uint16_le()) }
+    /// fn payload_for_version(version: &u8) -> Box<dyn Decoder<Item = u16, Error = std::io::Error>> {
+    ///     if *version == 0x01 { Box::new(uint16_be()) } else { Box::new(uint16_le()) }
     /// }
     ///
-    /// let mut decoder = uint8().and_then(payload_for_version).map(Device);
+    /// let mut decoder = uint8().and_then(payload_for_version);
     ///
     /// let device_big_endian = decoder.decode(&mut BytesMut::from("\x01\x2A\x3B")).unwrap();
-    /// assert_eq!(device_big_endian, Some(Device(0x2A3B)));
+    /// assert_eq!(device_big_endian, Some(0x2A3B));
+    ///
+    /// decoder.reset();
     ///
     /// let device_little_endian = decoder.decode(&mut BytesMut::from("\x00\x2A\x3B")).unwrap();
-    /// assert_eq!(device_little_endian, Some(Device(0x3B2A)));
+    /// assert_eq!(device_little_endian, Some(0x3B2A));
     /// ```
-    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, EE>
+    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, A, EE>
     where
-        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EE>>,
+        F: Fn(&A) -> Box<dyn Decoder<Item = B, Error = EE>>,
         F: 'static,
         EE: From<E>,
         Self: Sized;
@@ -122,16 +130,17 @@ where
         }
     }
 
-    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, EE>
+    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, A, EE>
     where
-        F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EE>>,
+        F: Fn(&A) -> Box<dyn Decoder<Item = B, Error = EE>>,
         F: 'static,
         EE: From<E>,
         Self: Sized,
     {
         DecoderAndThen {
-            inner: self,
-            f,
+            first: self,
+            to_second: f,
+            first_value: None,
             _error: PhantomData,
         }
     }
@@ -197,16 +206,34 @@ where
 }
 
 #[derive(Debug)]
-pub struct DecoderAndThen<D, F, E> {
-    inner: D,
-    f: F,
+pub struct DecoderAndThen<D, F, A, E> {
+    first: D,
+    to_second: F,
+    first_value: Option<A>,
     _error: PhantomData<E>,
 }
 
-impl<D, F, A, B, EA, EB, EE> Decoder for DecoderAndThen<D, F, EE>
+impl<D, F, A, EE> DecoderAndThen<D, F, A, EE> {
+    /// Accesses the first decoder value.
+    pub fn first_value(&self) -> Option<&A> {
+        self.first_value.as_ref()
+    }
+
+    /// Mutably accesses the first decoder value.
+    pub fn first_value_as_mut(&mut self) -> Option<&mut A> {
+        self.first_value.as_mut()
+    }
+
+    /// Resets the state of this decoder for decoding subsequent frames.
+    pub fn reset(&mut self) {
+        self.first_value = None
+    }
+}
+
+impl<D, F, A, B, EA, EB, EE> Decoder for DecoderAndThen<D, F, A, EE>
 where
     D: Decoder<Item = A, Error = EA>,
-    F: Fn(A) -> Box<dyn Decoder<Item = B, Error = EB>>,
+    F: Fn(&A) -> Box<dyn Decoder<Item = B, Error = EB>>,
     EA: From<io::Error>,
     EB: From<io::Error>,
     EE: From<io::Error> + From<EA> + From<EB>,
@@ -216,19 +243,22 @@ where
     type Error = EE;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        if self.first_value.is_none() {
+            self.first_value = self.first.decode(src)?;
+        }
+
         Ok(self
-            .inner
-            .decode(src)?
-            .and_then(|a| (self.f)(a).decode(src).transpose())
+            .first_value
+            .as_ref()
+            .and_then(|v| (self.to_second)(v).decode(src).transpose())
             .transpose()?)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::elements::{uint16_be, uint8};
-
     use super::*;
+    use crate::elements::{uint16_be, uint16_le, uint8};
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};
     use tokio_util::codec::BytesCodec;
@@ -281,7 +311,7 @@ mod tests {
     }
 
     #[test]
-    fn decode_then_multiple_pass_with_first_decoder_full() -> anyhow::Result<()> {
+    fn decode_then_multi_pass_with_first_decoder_full() -> anyhow::Result<()> {
         let mut decoder = uint16_be().then(uint8());
 
         let mut src = BytesMut::from("\x01\x02");
@@ -300,7 +330,87 @@ mod tests {
     }
 
     #[test]
-    fn decode_then_multiple_pass_with_first_decoder_waiting_for_more_bytes() -> anyhow::Result<()> {
+    fn decode_then_multi_pass_with_first_decoder_waiting_for_bytes() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().then(uint8());
+
+        let mut src = BytesMut::from("\x01");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, None);
+        assert_eq!(src, BytesMut::from("\x01"));
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x0102, 0x03)));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_and_then_with_dependency_on_previous_value() -> anyhow::Result<()> {
+        let mut decoder = uint8().and_then(|version| {
+            if *version == 0x01 {
+                Box::new(uint16_be())
+            } else {
+                Box::new(uint16_le())
+            }
+        });
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some(0x0203));
+        assert_eq!(src, BytesMut::default());
+        assert_eq!(decoder.first_value(), Some(&0x01));
+
+        decoder.reset();
+
+        let mut src = BytesMut::from("\x02\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some(0x0302));
+        assert_eq!(src, BytesMut::default());
+        assert_eq!(decoder.first_value(), Some(&0x02));
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_and_then_single_pass() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().and_then(|_| Box::new(uint8()));
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some(0x03));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_and_then_multi_pass_with_first_decoder_full() -> anyhow::Result<()> {
+        let mut decoder = uint16_be().and_then(|_| Box::new(uint8()));
+
+        let mut src = BytesMut::from("\x01\x02");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, None);
+        assert_eq!(src, BytesMut::default());
+
+        let mut src = BytesMut::from("\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some(0x03));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_and_then_multi_pass_with_first_decoder_waiting_for_bytes() -> anyhow::Result<()> {
         let mut decoder = uint16_be().then(uint8());
 
         let mut src = BytesMut::from("\x01");
