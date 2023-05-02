@@ -26,7 +26,10 @@ pub trait DecoderExt<A, E> {
     where
         F: Fn(A) -> B,
         F: 'static,
-        Self: Sized;
+        Self: Sized,
+    {
+        DecoderMap { inner: self, f }
+    }
 
     /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual values `(a, b)`.
     ///
@@ -52,7 +55,15 @@ pub trait DecoderExt<A, E> {
     where
         DNext: Decoder<Item = B, Error = EE>,
         EE: From<E>,
-        Self: Sized;
+        Self: Sized,
+    {
+        DecoderThen {
+            first: self,
+            second: next,
+            first_value: None,
+            _error: PhantomData,
+        }
+    }
 
     /// Chains a function `f` of type `&A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
     ///
@@ -100,41 +111,6 @@ pub trait DecoderExt<A, E> {
         F: Fn(&A) -> Box<dyn Decoder<Item = B, Error = EE>>,
         F: 'static,
         EE: From<E>,
-        Self: Sized;
-}
-
-impl<D, A, E> DecoderExt<A, E> for D
-where
-    D: Decoder<Item = A, Error = E>,
-    D: 'static,
-{
-    fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
-    where
-        F: Fn(A) -> B,
-        F: 'static,
-    {
-        DecoderMap { inner: self, f }
-    }
-
-    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
-    where
-        DNext: Decoder<Item = B, Error = EE>,
-        EE: From<E>,
-        Self: Sized,
-    {
-        DecoderThen {
-            first: self,
-            second: next,
-            first_value: None,
-            _error: PhantomData,
-        }
-    }
-
-    fn and_then<F, B, EE>(self, f: F) -> DecoderAndThen<Self, F, A, EE>
-    where
-        F: Fn(&A) -> Box<dyn Decoder<Item = B, Error = EE>>,
-        F: 'static,
-        EE: From<E>,
         Self: Sized,
     {
         DecoderAndThen {
@@ -144,6 +120,13 @@ where
             _error: PhantomData,
         }
     }
+}
+
+impl<D, A, E> DecoderExt<A, E> for D
+where
+    D: Decoder<Item = A, Error = E>,
+    D: 'static,
+{
 }
 
 #[derive(Debug)]
