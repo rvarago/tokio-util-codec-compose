@@ -8,27 +8,27 @@ use bytes::Bytes;
 use std::{io, net::Ipv4Addr};
 use tokio_util::codec::Decoder;
 
-/// Shorthand notation to construct an [`ints::U8`].
+/// Shorthand to construct an [`ints::U8`].
 pub fn uint8() -> ints::U8 {
     ints::U8::default()
 }
 
-/// Shorthand notation to construct an [`ints::U16BE`].
+/// Shorthand to construct an [`ints::U16BE`].
 pub fn uint16_be() -> ints::U16BE {
     ints::U16BE::default()
 }
 
-/// Shorthand notation to construct an [`ints::U16LE`].
+/// Shorthand to construct an [`ints::U16LE`].
 pub fn uint16_le() -> ints::U16LE {
     ints::U16LE::default()
 }
 
-/// Shorthand notation to construct an [`ints::U32BE`].
+/// Shorthand to construct an [`ints::U32BE`].
 pub fn uint32_be() -> ints::U32BE {
     ints::U32BE::default()
 }
 
-/// Shorthand notation to construct an [`ints::U32LE`].
+/// Shorthand to construct an [`ints::U32LE`].
 pub fn uint32_le() -> ints::U32LE {
     ints::U32LE::default()
 }
@@ -55,7 +55,7 @@ pub fn ipv4() -> impl Decoder<Item = Ipv4Addr, Error = io::Error> {
         .map(|(((a, b), c), d)| Ipv4Addr::new(a, b, c, d))
 }
 
-/// Shorthand notation to construct a decoder delimited by `seek_delimiters` up to length `max_length`.
+/// Shorthand to construct a decoder delimited by `seek_delimiters` up to length `max_length`.
 ///
 /// Delegates to [`tokio_util::codec::AnyDelimiterCodec`].
 pub fn delimited_by(
