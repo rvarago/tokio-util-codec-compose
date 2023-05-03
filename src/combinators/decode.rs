@@ -165,7 +165,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// without cloning or maybe saving incoming bytes and re-running this decoder. If you need access to the first value, use [`DecoderAndThen::first_value`]
     /// or [`DecoderAndThen::first_value_as_mut`].
     ///
-    /// # Important
+    /// # Stateful decoders and multi-frames
     ///
     /// Due to the stateful behaviour of this combinator, if you need to decode multiple frames, you'd need to [`DecoderAndThen::reset`] between frames to clean up
     /// the previous value `a` and therefore its influence on `b`.
