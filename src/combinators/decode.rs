@@ -465,8 +465,9 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert_eq!(value, Some(0x0203));
-        assert_eq!(src, BytesMut::default());
         assert_eq!(decoder.first_value(), Some(&0x01));
+        assert_eq!(decoder.first_value_as_mut(), Some(&mut 0x01));
+        assert_eq!(src, BytesMut::default());
 
         decoder.reset();
 
@@ -474,8 +475,9 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert_eq!(value, Some(0x0302));
-        assert_eq!(src, BytesMut::default());
         assert_eq!(decoder.first_value(), Some(&0x02));
+        assert_eq!(decoder.first_value_as_mut(), Some(&mut 0x02));
+        assert_eq!(src, BytesMut::default());
 
         Ok(())
     }
@@ -488,6 +490,8 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert_eq!(value, Some(0x03));
+        assert_eq!(decoder.first_value(), Some(&0x0102));
+        assert_eq!(decoder.first_value_as_mut(), Some(&mut 0x0102));
         assert_eq!(src, BytesMut::default());
 
         Ok(())
@@ -507,6 +511,8 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert_eq!(value, Some(0x03));
+        assert_eq!(decoder.first_value(), Some(&0x0102));
+        assert_eq!(decoder.first_value_as_mut(), Some(&mut 0x0102));
         assert_eq!(src, BytesMut::default());
 
         Ok(())
@@ -526,6 +532,8 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert_eq!(value, Some(0x03));
+        assert_eq!(decoder.first_value(), Some(&0x0102));
+        assert_eq!(decoder.first_value_as_mut(), Some(&mut 0x0102));
         assert_eq!(src, BytesMut::default());
 
         Ok(())
