@@ -4,7 +4,7 @@ use bytes::BytesMut;
 use std::{io, marker::PhantomData};
 use tokio_util::codec::Decoder;
 
-pub trait DecoderExt<A, E> {
+pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// Applies a function `f` of type `A -> B` over the decoded value when that is `Ok(Some(a))`.
     ///
     /// The function `f` cannot fail.
