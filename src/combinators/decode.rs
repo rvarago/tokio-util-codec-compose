@@ -93,7 +93,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::{uint8, uint16_be, uint16_le}};
     ///
     /// fn payload_for_version(version: &u8) -> Box<dyn Decoder<Item = u16, Error = std::io::Error>> {
-    ///     if *version == 0x01 { Box::new(uint16_be()) } else { Box::new(uint16_le()) }
+    ///     if *version == 0x01 { uint16_be().boxed() } else { uint16_le().boxed() }
     /// }
     ///
     /// let mut decoder = uint8().and_then(payload_for_version);
@@ -119,6 +119,18 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
             first_value: None,
             _error: PhantomData,
         }
+    }
+
+    /// Shorthand for boxing this decoder while also widening its type.
+    ///
+    /// That's probably useful when combined with [`DecoderExt::and_then`] where the continuation
+    /// yields decoders with different types.
+    fn boxed(self) -> Box<dyn Decoder<Item = A, Error = E>>
+    where
+        Self: Sized,
+        Self: 'static,
+    {
+        Box::new(self)
     }
 }
 
@@ -335,9 +347,9 @@ mod tests {
     fn decode_and_then_with_dependency_on_previous_value() -> anyhow::Result<()> {
         let mut decoder = uint8().and_then(|version| {
             if *version == 0x01 {
-                Box::new(uint16_be())
+                uint16_be().boxed()
             } else {
-                Box::new(uint16_le())
+                uint16_le().boxed()
             }
         });
 
