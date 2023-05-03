@@ -406,7 +406,7 @@ mod tests {
 
     #[test]
     fn decode_and_then_multi_pass_with_first_decoder_waiting_for_bytes() -> anyhow::Result<()> {
-        let mut decoder = uint16_be().then(uint8());
+        let mut decoder = uint16_be().and_then(|_| uint8());
 
         let mut src = BytesMut::from("\x01");
         let value = decoder.decode(&mut src)?;
@@ -417,7 +417,7 @@ mod tests {
         let mut src = BytesMut::from("\x01\x02\x03");
         let value = decoder.decode(&mut src)?;
 
-        assert_eq!(value, Some((0x0102, 0x03)));
+        assert_eq!(value, Some(0x03));
         assert_eq!(src, BytesMut::default());
 
         Ok(())
