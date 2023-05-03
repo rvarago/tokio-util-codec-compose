@@ -13,7 +13,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///
     /// ```
     /// # use tokio_util::codec::Decoder;
-    /// # use bytes::{BytesMut, Buf};
+    /// # use bytes::BytesMut;
     /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
     ///
     /// # #[derive(Debug, PartialEq, Eq)]
@@ -41,7 +41,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///
     /// ```
     /// # use tokio_util::codec::Decoder;
-    /// # use bytes::{BytesMut, Buf};
+    /// # use bytes::BytesMut;
     /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
     ///
     /// let pair = uint8().then(uint8()).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
@@ -86,7 +86,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///
     /// ```
     /// # use tokio_util::codec::Decoder;
-    /// # use bytes::{BytesMut, Buf};
+    /// # use bytes::BytesMut;
     /// use tokio_util_codec_compose::{combinators::{decode::DecoderBoxed, DecoderExt}, elements::{uint8, uint16_be, uint16_le}};
     ///
     /// fn payload_for_version(version: &u8) -> DecoderBoxed<u16, std::io::Error> {
