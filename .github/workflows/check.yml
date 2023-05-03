@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+name: Check
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Check
+        run: ./ci check
