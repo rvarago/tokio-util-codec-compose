@@ -80,6 +80,44 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
         }
     }
 
+    /// Applies a function `f` of type `E -> EE` over the decoding error when that is `Err(e)`.
+    ///
+    /// That's handy when we need to adapt errors across boundaries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tokio_util::codec::Decoder;
+    /// # use bytes::BytesMut;
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
+    ///
+    /// fn decoder_operation() -> impl Decoder<Item = Operation, Error = std::io::Error> {
+    /// #   uint8().try_map(|_| Err(std::io::Error::from(std::io::ErrorKind::Other)))
+    /// }
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// enum Operation {
+    ///     TurnOff, Turning
+    /// }
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// struct OperationError;
+    ///
+    /// impl From<std::io::Error> for OperationError {
+    ///     fn from(value: std::io::Error) -> Self {
+    ///         Self
+    ///     }
+    /// }
+    /// let err = decoder_operation().map_err(|_| OperationError).decode(&mut BytesMut::from("\x00")); // invalid operation number
+    /// assert_eq!(err, Err(OperationError));
+    /// ```
+    fn map_err<F, EE>(self, f: F) -> DecoderMapErr<Self, F>
+    where
+        F: Fn(E) -> EE,
+        Self: Sized,
+    {
+        DecoderMapErr { inner: self, f }
+    }
+
     /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual values `(a, b)`.
     ///
     /// This enables the application of decoders in sequence where a step does not depend on its predecessor (when such a dependency exists, consider [`DecoderExt::and_then`].
@@ -227,6 +265,28 @@ where
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.inner.decode(src)?.map(&self.f).transpose()
+    }
+}
+
+#[derive(Debug)]
+pub struct DecoderMapErr<D, F> {
+    inner: D,
+    f: F,
+}
+
+impl<D, F, A, E, EE> Decoder for DecoderMapErr<D, F>
+where
+    D: Decoder<Item = A, Error = E>,
+    F: Fn(E) -> EE,
+    E: From<io::Error>,
+    EE: From<io::Error>,
+{
+    type Item = A;
+
+    type Error = EE;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        self.inner.decode(src).map_err(&self.f)
     }
 }
 
@@ -398,6 +458,54 @@ mod tests {
         let err_kind = err.map_err(|e| e.kind());
 
         assert!(matches!(err_kind, Err(io::ErrorKind::Other)));
+    }
+
+    #[test]
+    fn decode_map_err_succeed() {
+        let mut decoder = uint8()
+            .try_map(|_| Ok::<_, io::Error>(0x42))
+            .map_err(|e| DecodeMapErrError::from(e));
+
+        let mut src = BytesMut::from("\x01");
+        let ok = decoder.decode(&mut src);
+
+        assert_eq!(ok, Ok(Some(0x42)))
+    }
+
+    #[test]
+    fn decode_map_err_fail() {
+        let mut decoder = uint8()
+            .try_map(|_| Err::<u8, _>(io::Error::from(io::ErrorKind::Other)))
+            .map_err(|e| DecodeMapErrError {
+                kind: e.kind(),
+                msg: "no particular reason".into(),
+            });
+
+        let mut src = BytesMut::from("\x01");
+        let ok = decoder.decode(&mut src);
+
+        assert_eq!(
+            ok,
+            Err(DecodeMapErrError {
+                kind: io::ErrorKind::Other,
+                msg: Some("no particular reason")
+            })
+        )
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct DecodeMapErrError {
+        kind: io::ErrorKind,
+        msg: Option<&'static str>,
+    }
+
+    impl From<io::Error> for DecodeMapErrError {
+        fn from(value: io::Error) -> Self {
+            Self {
+                kind: value.kind(),
+                msg: None,
+            }
+        }
     }
 
     #[test]
