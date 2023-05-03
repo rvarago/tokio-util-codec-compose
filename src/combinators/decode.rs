@@ -44,12 +44,9 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// # use bytes::{BytesMut, Buf};
     /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
     ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct Device(u8, u8);
+    /// let pair = uint8().then(uint8()).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
     ///
-    /// let device = uint8().then(uint8()).map(|(a, b)| Device(a, b)).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
-    ///
-    /// assert_eq!(device, Some(Device(0x2A, 0x3B)));
+    /// assert_eq!(pair, Some((0x2A, 0x3B)));
     /// ```
     fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
     where
