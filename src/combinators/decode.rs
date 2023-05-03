@@ -25,7 +25,6 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
     where
         F: Fn(A) -> B,
-        F: 'static,
         Self: Sized,
     {
         DecoderMap { inner: self, f }
@@ -72,7 +71,6 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     fn try_map<F, B, EE>(self, f: F) -> DecoderTryMap<Self, F, EE>
     where
         F: Fn(A) -> Result<B, EE>,
-        F: 'static,
         Self: Sized,
     {
         DecoderTryMap {
@@ -158,7 +156,6 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     fn and_then<F, DNext, B, EE>(self, f: F) -> DecoderAndThen<Self, F, DNext, A, EE>
     where
         F: Fn(&A) -> DNext,
-        F: 'static,
         DNext: Decoder<Item = B, Error = EE>,
         EE: From<E>,
         Self: Sized,
@@ -187,12 +184,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     }
 }
 
-impl<D, A, E> DecoderExt<A, E> for D
-where
-    D: Decoder<Item = A, Error = E>,
-    D: 'static,
-{
-}
+impl<D, A, E> DecoderExt<A, E> for D where D: Decoder<Item = A, Error = E> {}
 
 #[derive(Debug)]
 pub struct DecoderMap<D, F> {
@@ -369,8 +361,8 @@ mod tests {
     #[track_caller]
     fn decode_map_law_map_id_succeed<D, A, E>(mut decoder: D, mut src: BytesMut)
     where
-        D: Decoder<Item = A, Error = E> + Clone + 'static,
-        A: PartialEq + Debug + 'static,
+        D: Decoder<Item = A, Error = E> + Clone,
+        A: PartialEq + Debug,
         E: Debug + From<io::Error>,
     {
         let mut src_mapped = src.clone();
