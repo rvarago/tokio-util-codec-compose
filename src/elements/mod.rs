@@ -1,4 +1,4 @@
-//! Building blocks for composing codecs.
+//! Building blocks for with simple codec as primites for composition.
 
 pub mod ints;
 
