@@ -48,6 +48,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///
     /// assert_eq!(pair, Some((0x2A, 0x3B)));
     /// ```
+    // TODO: Flatten resulting tuple.
     fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
     where
         DNext: Decoder<Item = B, Error = EE>,
