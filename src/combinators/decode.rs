@@ -405,8 +405,7 @@ mod tests {
     use std::{convert::identity as id, fmt::Debug};
     use tokio_util::codec::BytesCodec;
 
-    // TODO: Check composition law.
-    // TODO: Add more test-cases.
+    // TODO: Check laws.
 
     proptest! {
         #[test]
@@ -437,6 +436,20 @@ mod tests {
 
     fn bytes() -> impl Strategy<Value = Vec<u8>> {
         proptest::collection::vec(any::<u8>(), 0..255)
+    }
+
+    #[test]
+    fn decode_map() -> anyhow::Result<()> {
+        #[derive(Debug, PartialEq, Eq)]
+        struct Device(u8);
+        let mut decoder = uint8().map(Device);
+
+        let mut src = BytesMut::from("\x01");
+        let value = decoder.decode(&mut src)?;
+
+        assert!(matches!(value, Some(Device(0x01))));
+
+        Ok(())
     }
 
     #[test]
