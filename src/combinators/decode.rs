@@ -33,6 +33,40 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
         DecoderMap { inner: self, f }
     }
 
+    /// Applies an [`B::from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
+    ///
+    /// The conversion cannot fail.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tokio_util::codec::Decoder;
+    /// # use bytes::BytesMut;
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// struct Device(u8);
+    ///
+    /// impl From<u8> for Device {
+    ///     fn from(value: u8) -> Self {
+    ///         Self(value)
+    ///     }
+    /// }
+    ///
+    /// let device = uint8().map_into::<Device>().decode(&mut BytesMut::from("\x2A")).unwrap();
+    /// assert_eq!(device, Some(Device(42)));
+    /// ```
+    fn map_into<B>(self) -> DecoderMapInto<Self, B>
+    where
+        B: From<A>,
+        Self: Sized,
+    {
+        DecoderMapInto {
+            inner: self,
+            _target: PhantomData,
+        }
+    }
+
     /// Applies a fallible function `f` of type `A -> Result<B, EE>` over the decoded value when that is `Ok(Some(a))`.
     ///
     /// The function `f` can fail and that's handy when we interleave decoding with validation,
@@ -251,6 +285,30 @@ where
     }
 }
 
+/// A decoder for applying a non-fallible conversion onto the success type.
+///
+/// The result of [`Decoder::map_into`].
+#[derive(Debug)]
+pub struct DecoderMapInto<D, B> {
+    inner: D,
+    _target: PhantomData<B>,
+}
+
+impl<D, A, B, E> Decoder for DecoderMapInto<D, B>
+where
+    D: Decoder<Item = A, Error = E>,
+    B: From<A>,
+    E: From<io::Error>,
+{
+    type Item = B;
+
+    type Error = E;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        Ok(self.inner.decode(src)?.map(B::from))
+    }
+}
+
 /// A decoder for applying a fallible transformation on the success type.
 ///
 /// The result of [`Decoder::try_map`].
@@ -464,6 +522,26 @@ mod tests {
         #[derive(Debug, PartialEq, Eq)]
         struct Device(u8);
         let mut decoder = uint8().map(Device);
+
+        let mut src = BytesMut::from("\x01");
+        let value = decoder.decode(&mut src)?;
+
+        assert!(matches!(value, Some(Device(0x01))));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
+    fn decode_map_into() -> anyhow::Result<()> {
+        #[derive(Debug, PartialEq, Eq)]
+        struct Device(u8);
+        impl From<u8> for Device {
+            fn from(value: u8) -> Self {
+                Self(value)
+            }
+        }
+        let mut decoder = uint8().map_into::<Device>();
 
         let mut src = BytesMut::from("\x01");
         let value = decoder.decode(&mut src)?;
