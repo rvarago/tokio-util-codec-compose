@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+set -eux
+
+default() {
+    check
+}
+
+check() {
+    _fmt
+    _lint
+    _test
+    _examples
+}
+
+_fmt() {
+    cargo fmt --check
+}
+
+_lint() {
+    cargo clippy -- -D warnings
+}
+
+_test() {
+    cargo test
+}
+
+_examples() {
+    for example in examples/*.rs; do
+        cargo run --example "$(basename "$example" ".rs")"
+    done
+}
+
+TIMEFORMAT="Completed within %3lR"
+time ${@:-default}

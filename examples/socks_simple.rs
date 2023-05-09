@@ -1,27 +1,5 @@
-# tokio-util-codec-compose
+//! A simple SOCKSv4 decoder without any validation during decoding.
 
-Building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs
-
-> This library was inspired by [scodec](https://github.com/scodec/scodec).
-
-## Overview
-
-Decoding communication protocols from byte streams usually involves the combination of multiple steps, e.g. decode the header and then the payload. Also, decoders often have state, e.g. we have multiple decoders for the payload where we select the appropriate one based on the header.
-
-However, we may find ourselves repeating the same sequence of decoding steps that and possibly judging its correctness only as part of larger sequence, not in terms of the individual steps.
-
-To tackle this, `tokio-util-codec-compose` library builds atop the great [tokio-util](https://docs.rs/tokio-util/latest/tokio_util/) and encapsulates some patterns I have seen while implementing codecs for communications protocols, for both stateless and stateful protocols.
-
-## Features
-
-- Primitives to decode sequences of bytes into data-types
-- Operations to compose simpler decoders into more powerful ones
-
-## Examples
-
-Decoding a SOCKS4 CONNECT request with no validation interleaved with decoding:
-
-```rust
 use tokio_util_codec_compose::{combinators::DecoderExt, elements::*};
 
 use anyhow::Result;
@@ -80,14 +58,3 @@ struct SocksRequest {
     destination_ip: Ipv4Addr,
     user_id: String,
 }
-```
-
-See more [examples](./examples).
-
-## Contributing
-
-Contributions are more than welcome! If you encounter any issue, have feature requests, or want to make improvements, please open an issue or submit a pull request.
-
-## License
-
-This library is licensed under the MIT License. Please refer to the LICENSE file for more information.
