@@ -8,21 +8,7 @@ use std::{io, net::Ipv4Addr};
 use tokio_util::codec::Decoder;
 
 fn main() -> Result<()> {
-    let mut decoder = uint8()
-        .try_map(Version::try_from)
-        .then(uint8().try_map(Command::try_from))
-        .then(uint16_be())
-        .then(ipv4())
-        .then(delimited_by([b'\x00'], 255))
-        .map(
-            |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
-                version,
-                command,
-                destination_port,
-                destination_ip,
-                user_id: String::from_utf8_lossy(&user_id).into_owned(),
-            },
-        );
+    let mut decoder = socks_request_decoder();
 
     // SOCKS4 invalid request (wrong version 0x05)
 
@@ -33,12 +19,14 @@ fn main() -> Result<()> {
 
     // SOCKS4 valid request to CONNECT "Fred" to 66.102.7.99:80 => "\x04\x01\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00"
 
+    // Only a few bytes are available
     let mut src = BytesMut::from("\x04\x01");
     let res = decoder.decode(&mut src)?;
 
     assert_eq!(res, None);
     assert_eq!(src, BytesMut::from(""));
 
+    // The rest of the bytes
     let mut src = BytesMut::from("\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00");
     let res = decoder.decode(&mut src)?;
 
@@ -57,6 +45,25 @@ fn main() -> Result<()> {
     dbg!(res);
 
     Ok(())
+}
+
+fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
+    uint8()
+        .try_map(Version::try_from)
+        .then(uint8().try_map(Command::try_from))
+        .then(uint16_be())
+        .then(ipv4())
+        .then(delimited_by([b'\x00'], 255))
+        .map(
+            |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
+                version,
+                command,
+                destination_port,
+                destination_ip,
+                user_id: String::from_utf8_lossy(&user_id).into_owned(),
+            },
+        )
+        .map_err(|e| anyhow::format_err!("could not decode socks request, reason: {e}"))
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -36,20 +36,7 @@ use std::net::Ipv4Addr;
 use tokio_util::codec::Decoder;
 
 fn main() -> Result<()> {
-    let mut decoder = uint8()
-        .then(uint8())
-        .then(uint16_be())
-        .then(ipv4())
-        .then(delimited_by([b'\x00'], 255))
-        .map(
-            |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
-                version,
-                command,
-                destination_port,
-                destination_ip,
-                user_id: String::from_utf8_lossy(&user_id).into_owned(),
-            },
-        );
+    let mut decoder = socks_request_decoder();
 
     // SOCKS4 request to CONNECT "Fred" to 66.102.7.99:80 => "\x04\x01\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00"
     let mut src = BytesMut::from("\x04\x01");
@@ -76,6 +63,24 @@ fn main() -> Result<()> {
     dbg!(res);
 
     Ok(())
+}
+
+fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
+    uint8()
+        .then(uint8())
+        .then(uint16_be())
+        .then(ipv4())
+        .then(delimited_by([b'\x00'], 255))
+        .map(
+            |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
+                version,
+                command,
+                destination_port,
+                destination_ip,
+                user_id: String::from_utf8_lossy(&user_id).into_owned(),
+            },
+        )
+        .map_err(|e| anyhow::format_err!("could not decode socks request, reason: {e}"))
 }
 
 #[derive(Debug, PartialEq, Eq)]
