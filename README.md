@@ -1,6 +1,6 @@
 # tokio-util-codec-compose
 
-Building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs
+A Rust library with building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs
 
 > This library was inspired by [scodec](https://github.com/scodec/scodec).
 
@@ -8,14 +8,20 @@ Building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tok
 
 Decoding communication protocols from byte streams usually involves the combination of multiple steps, e.g. decode the header and then the payload. Also, decoders often have state, e.g. we have multiple decoders for the payload where we select the appropriate one based on the header.
 
-However, we may find ourselves repeating the same sequence of decoding steps that and possibly judging its correctness only as part of larger sequence, not in terms of the individual steps.
+However, we may find ourselves repeating the same sequence of decoding steps multiple times and possibly judging their correctness only as part of larger sequence, not in terms of the individual steps; again multiple times.
 
-To tackle this, `tokio-util-codec-compose` library builds atop the great [tokio-util](https://docs.rs/tokio-util/latest/tokio_util/) and encapsulates some patterns I have seen while implementing codecs for communications protocols, for both stateless and stateful protocols.
+To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communications protocols, for both stateless and stateful protocols.
 
 ## Features
 
 - Primitives to decode sequences of bytes into data-types
 - Operations to compose simpler decoders into more powerful ones
+
+## Roadmap
+
+- Add more combinators
+- Add support for encoding
+- Flatten nested tuples
 
 ## Examples
 
