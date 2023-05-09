@@ -35,7 +35,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
 
     /// Applies an [`B::from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
     ///
-    /// The conversion cannot fail.
+    /// The conversion cannot fail. If you need a fallible conversion, then consider [`DecoderExt::try_map_into`].
     ///
     /// # Examples
     ///
@@ -71,6 +71,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///
     /// The function `f` can fail and that's handy when we interleave decoding with validation,
     /// for instance, when mapping from a larger domain (e.g. `u8`) into a smaller co-domain (e.g. `Version::v1`).
+    /// If you don't need a fallible mapping, then consider [`DecoderExt::map`].
     ///
     /// The mapping can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
     ///
@@ -117,6 +118,55 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
         }
     }
 
+    /// Applies an [`B::try_from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
+    ///
+    /// The conversion can fail and that's handy when we interleave decoding with validation,
+    /// for instance, when mapping from a larger domain (e.g. `u8`) into a smaller co-domain (e.g. `Version::v1`).
+    /// If you don't need a fallible conversion, then consider [`DecoderExt::map`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use tokio_util::codec::Decoder;
+    /// # use bytes::BytesMut;
+    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
+    ///
+    /// # #[derive(Debug, PartialEq, Eq)]
+    /// enum Version {
+    ///     V1
+    /// }
+    ///
+    /// impl TryFrom<u8> for Version {
+    ///     type Error = std::io::Error;
+    ///
+    ///     fn try_from(value: u8) -> Result<Self, Self::Error> {
+    ///             match value {
+    ///                 1 => Ok(Version::V1),
+    ///                 _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
+    ///             }
+    ///     }
+    /// }
+    ///
+    /// let mut decoder = uint8().try_map_into::<Version>();
+    ///
+    /// let version_ok = decoder.decode(&mut BytesMut::from("\x01")).unwrap();
+    /// assert_eq!(version_ok, Some(Version::V1));
+    ///
+    /// let version_err = decoder.decode(&mut BytesMut::from("\x02")).unwrap_err();
+    /// assert_eq!(version_err.kind(), std::io::ErrorKind::InvalidData);
+    /// ```
+    fn try_map_into<B>(self) -> DecoderTryMapInto<Self, B, B::Error>
+    where
+        B: TryFrom<A>,
+        Self: Sized,
+    {
+        DecoderTryMapInto {
+            inner: self,
+            _target: PhantomData,
+            _error: PhantomData,
+        }
+    }
+
     /// Applies a function `f` of type `E -> EE` over the decoding error when that is `Err(e)`.
     ///
     /// That's handy when we need to adapt errors across boundaries.
@@ -131,6 +181,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// fn decoder_operation() -> impl Decoder<Item = Operation, Error = std::io::Error> {
     /// #   uint8().try_map(|_| Err(std::io::Error::from(std::io::ErrorKind::Other)))
     /// }
+    ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// enum Operation {
     ///     TurnOff, Turning
@@ -144,6 +195,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     ///         Self
     ///     }
     /// }
+    ///
     /// let err = decoder_operation().map_err(|_| OperationError).decode(&mut BytesMut::from("\x00")); // invalid operation number
     /// assert_eq!(err, Err(OperationError));
     /// ```
@@ -332,6 +384,32 @@ where
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         self.inner.decode(src)?.map(&self.f).transpose()
+    }
+}
+
+/// A decoder for applying a fallible conversion onto the success type.
+///
+/// The result of [`Decoder::try_map_into`].
+#[derive(Debug)]
+pub struct DecoderTryMapInto<D, B, E> {
+    inner: D,
+    _target: PhantomData<B>,
+    _error: PhantomData<E>,
+}
+
+impl<D, A, B, E, EE> Decoder for DecoderTryMapInto<D, B, EE>
+where
+    D: Decoder<Item = A, Error = E>,
+    B: TryFrom<A, Error = EE>,
+    E: From<io::Error>,
+    EE: From<io::Error> + From<E>,
+{
+    type Item = B;
+
+    type Error = EE;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        self.inner.decode(src)?.map(B::try_from).transpose()
     }
 }
 
@@ -572,6 +650,62 @@ mod tests {
         let err_kind = err.map_err(|e| e.kind());
 
         assert!(matches!(err_kind, Err(io::ErrorKind::Other)));
+        assert_eq!(src, BytesMut::default());
+    }
+
+    #[test]
+    fn decode_try_map_into_succeed() {
+        #[derive(Debug, PartialEq, Eq)]
+        enum Version {
+            V1,
+        }
+
+        impl TryFrom<u8> for Version {
+            type Error = std::io::Error;
+
+            fn try_from(value: u8) -> Result<Self, Self::Error> {
+                match value {
+                    1 => Ok(Version::V1),
+                    _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
+                }
+            }
+        }
+
+        let mut decoder = uint8().try_map_into::<Version>();
+
+        let mut src = BytesMut::from("\x01");
+        let ok = decoder.decode(&mut src);
+
+        assert!(matches!(ok, Ok(Some(Version::V1))));
+        assert_eq!(src, BytesMut::default());
+    }
+
+    #[test]
+    fn decode_try_map_into_fail() {
+        #[derive(Debug, PartialEq, Eq)]
+        enum Version {
+            V1,
+        }
+
+        impl TryFrom<u8> for Version {
+            type Error = std::io::Error;
+
+            fn try_from(value: u8) -> Result<Self, Self::Error> {
+                match value {
+                    1 => Ok(Version::V1),
+                    _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
+                }
+            }
+        }
+
+        let mut decoder = uint8().try_map_into::<Version>();
+
+        let mut src = BytesMut::from("\x02");
+        let err = decoder.decode(&mut src);
+        let err_kind = err.map_err(|e| e.kind());
+
+        assert!(matches!(err_kind, Err(io::ErrorKind::InvalidData)));
+        assert_eq!(src, BytesMut::default());
     }
 
     #[test]
