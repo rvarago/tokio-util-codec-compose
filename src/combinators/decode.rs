@@ -469,6 +469,7 @@ mod tests {
         let value = decoder.decode(&mut src)?;
 
         assert!(matches!(value, Some(Device(0x01))));
+        assert_eq!(src, BytesMut::default());
 
         Ok(())
     }
