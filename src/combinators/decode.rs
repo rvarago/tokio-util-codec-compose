@@ -560,6 +560,7 @@ mod tests {
         let ok = decoder.decode(&mut src);
 
         assert!(matches!(ok, Ok(Some(0x02))));
+        assert_eq!(src, BytesMut::default());
     }
 
     #[test]
@@ -582,7 +583,8 @@ mod tests {
         let mut src = BytesMut::from("\x01");
         let ok = decoder.decode(&mut src);
 
-        assert_eq!(ok, Ok(Some(0x42)))
+        assert_eq!(ok, Ok(Some(0x42)));
+        assert_eq!(src, BytesMut::default());
     }
 
     #[test]
@@ -603,7 +605,8 @@ mod tests {
                 kind: io::ErrorKind::Other,
                 msg: Some("no particular reason")
             })
-        )
+        );
+        assert_eq!(src, BytesMut::default());
     }
 
     #[derive(Debug, PartialEq, Eq)]
