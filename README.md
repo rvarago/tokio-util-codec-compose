@@ -96,4 +96,4 @@ Contributions are more than welcome! If you encounter any issue, have feature re
 
 ## License
 
-This library is licensed under the MIT License. Please refer to the LICENSE file for more information.
+This library is licensed under the MIT License. Please refer to the [LICENSE](./LICENSE) file for more information.
