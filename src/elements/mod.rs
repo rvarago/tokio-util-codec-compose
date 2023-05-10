@@ -47,6 +47,7 @@ pub fn uint32_le() -> ints::U32LE {
 ///
 /// assert_eq!(res, "66.102.7.99".parse().ok())
 /// ```
+#[must_use = "decoders do nothing unless used"]
 pub fn ipv4() -> impl Decoder<Item = Ipv4Addr, Error = io::Error> {
     uint8()
         .then(uint8())
@@ -58,6 +59,7 @@ pub fn ipv4() -> impl Decoder<Item = Ipv4Addr, Error = io::Error> {
 /// Shorthand to construct a decoder delimited by `seek_delimiters` up to length `max_length`.
 ///
 /// Delegates to [`tokio_util::codec::AnyDelimiterCodec`].
+#[must_use = "decoders do nothing unless used"]
 pub fn delimited_by(
     seek_delimiters: impl Into<Vec<u8>>,
     max_lenght: usize,

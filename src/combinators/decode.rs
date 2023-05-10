@@ -316,6 +316,7 @@ impl<D, A, E> DecoderExt<A, E> for D where D: Decoder<Item = A, Error = E> {}
 /// A decoder for applying a non-fallible transformation on the success type.
 ///
 /// The result of [`Decoder::map`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMap<D, F> {
     inner: D,
@@ -340,6 +341,7 @@ where
 /// A decoder for applying a non-fallible conversion onto the success type.
 ///
 /// The result of [`Decoder::map_into`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapInto<D, B> {
     inner: D,
@@ -364,6 +366,7 @@ where
 /// A decoder for applying a fallible transformation on the success type.
 ///
 /// The result of [`Decoder::try_map`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderTryMap<D, F, E> {
     inner: D,
@@ -390,6 +393,7 @@ where
 /// A decoder for applying a fallible conversion onto the success type.
 ///
 /// The result of [`Decoder::try_map_into`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderTryMapInto<D, B, E> {
     inner: D,
@@ -416,6 +420,7 @@ where
 /// A decoder for applying a fallible transformation on the error type.
 ///
 /// The result of [`Decoder::map_err`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapErr<D, F> {
     inner: D,
@@ -441,6 +446,7 @@ where
 /// A decoder for sequence decoders with no interdependency between each other.
 ///
 /// The result of [`Decoder::then`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderThen<DFirst, DSecond, A, E> {
     first: DFirst,
@@ -482,6 +488,7 @@ where
 /// A decoder for sequence decoders with interdependency between each other.
 ///
 /// The result of [`Decoder::and_then`].
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderAndThen<DFirst, F, DSecond, A, E> {
     first: DFirst,
@@ -537,6 +544,7 @@ where
 /// A decoder that boxes another decoder.
 ///
 /// The result of [`Decoder::boxed`].
+#[must_use = "decoders do nothing unless used"]
 pub struct DecoderBoxed<A, E> {
     inner: Box<dyn Decoder<Item = A, Error = E>>,
 }

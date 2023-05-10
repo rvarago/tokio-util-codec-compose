@@ -16,6 +16,7 @@ use bytes::Buf;
 ///
 /// assert_eq!(res, Some(42))
 /// ```
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U8;
 
@@ -33,6 +34,7 @@ pub struct U8;
 ///
 /// assert_eq!(res, Some(0x2A3B))
 /// ```
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U16BE;
 
@@ -50,6 +52,7 @@ pub struct U16BE;
 ///
 /// assert_eq!(res, Some(0x3B2A))
 /// ```
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U16LE;
 
@@ -67,6 +70,7 @@ pub struct U16LE;
 ///
 /// assert_eq!(res, Some(0x2A3B4C5D))
 /// ```
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U32BE;
 
@@ -84,6 +88,7 @@ pub struct U32BE;
 ///
 /// assert_eq!(res, Some(0x5D4C3B2A))
 /// ```
+#[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U32LE;
 
