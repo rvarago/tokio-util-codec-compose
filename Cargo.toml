@@ -1,8 +1,10 @@
 [package]
 name = "tokio-util-codec-compose"
 version = "0.1.0"
+description = "Building blocks for composing tokio-util codecs"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/rvarago/tokio-util-codec-compose"
 
 [dependencies]
 bytes = "1"
