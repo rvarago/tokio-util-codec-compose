@@ -511,7 +511,7 @@ impl<DFirst, F, DSecond, A, EE> DecoderAndThen<DFirst, F, DSecond, A, EE> {
 
     /// Resets the state of this decoder for decoding subsequent frames.
     pub fn reset(&mut self) {
-        self.first_value = None
+        self.first_value = None;
     }
 }
 

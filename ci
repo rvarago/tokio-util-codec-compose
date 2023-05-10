@@ -18,7 +18,7 @@ _fmt() {
 }
 
 _lint() {
-    cargo clippy --all-targets --all-features -- -Dwarnings -Dclippy::all
+    cargo clippy --all-targets --all-features -- -Dwarnings -Dclippy::all -Dclippy::pedantic
 }
 
 _test() {

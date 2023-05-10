@@ -1,6 +1,9 @@
-//! A simple SOCKSv4 decoder without any validation during decoding.
+//! A simple SOCKS v4 decoder without any validation during decoding.
 
-use tokio_util_codec_compose::{combinators::DecoderExt, elements::*};
+use tokio_util_codec_compose::{
+    combinators::DecoderExt,
+    elements::{delimited_by, ipv4, uint16_be, uint8},
+};
 
 use anyhow::Result;
 use bytes::BytesMut;
@@ -10,7 +13,7 @@ use tokio_util::codec::Decoder;
 fn main() -> Result<()> {
     let mut decoder = socks_request_decoder();
 
-    // SOCKS4 request to CONNECT "Fred" to 66.102.7.99:80 => "\x04\x01\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00"
+    // SOCKS v4 request to CONNECT "Fred" to 66.102.7.99:80 => "\x04\x01\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00"
 
     // Only a few bytes are available
     let mut src = BytesMut::from("\x04\x01");

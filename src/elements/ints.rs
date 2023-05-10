@@ -162,7 +162,7 @@ mod tests {
         check(CheckOpts {
             decoder: U32BE::default(),
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
-            expected_output: 0x2A3B0102,
+            expected_output: 0x2A3B_0102,
             expected_remainder: BytesMut::from("\x03"),
         })
     }
@@ -172,7 +172,7 @@ mod tests {
         check(CheckOpts {
             decoder: U32LE::default(),
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
-            expected_output: 0x02013B2A,
+            expected_output: 0x0201_3B2A,
             expected_remainder: BytesMut::from("\x03"),
         })
     }
