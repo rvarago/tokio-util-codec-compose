@@ -906,4 +906,42 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn decode_and_then_first_fail() {
+        let mut decoder = DecoderFail::default().and_then(|_| uint8());
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let err = decoder.decode(&mut src);
+
+        let err_kind = err.map_err(|e| e.kind());
+
+        assert!(matches!(err_kind, Err(io::ErrorKind::Other)));
+        assert_eq!(src, BytesMut::from("\x01\x02\x03"));
+    }
+
+    #[test]
+    fn decode_and_then_second_fail() {
+        let mut decoder = uint8().and_then(|_| DecoderFail::default());
+
+        let mut src = BytesMut::from("\x01\x02\x03");
+        let err = decoder.decode(&mut src);
+
+        let err_kind = err.map_err(|e| e.kind());
+
+        assert!(matches!(err_kind, Err(io::ErrorKind::Other)));
+        assert_eq!(src, BytesMut::from("\x02\x03"));
+    }
+
+    #[derive(Debug, Default)]
+    struct DecoderFail;
+    impl Decoder for DecoderFail {
+        type Item = u16;
+
+        type Error = io::Error;
+
+        fn decode(&mut self, _src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+            Err(io::ErrorKind::Other.into())
+        }
+    }
 }
