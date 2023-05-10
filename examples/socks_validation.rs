@@ -49,8 +49,8 @@ fn main() -> Result<()> {
 
 fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
     uint8()
-        .try_map(Version::try_from)
-        .then(uint8().try_map(Command::try_from))
+        .try_map_into::<Version>()
+        .then(uint8().try_map_into::<Command>())
         .then(uint16_be())
         .then(ipv4())
         .then(delimited_by([b'\x00'], 255))
