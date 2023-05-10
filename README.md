@@ -1,5 +1,7 @@
 # tokio-util-codec-compose
 
+[![Check](https://github.com/rvarago/tokio-util-codec-compose/actions/workflows/check.yml/badge.svg)](https://github.com/rvarago/tokio-util-codec-compose/actions/workflows/check.yml)
+
 A Rust library with building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs
 
 > This library was inspired by [scodec](https://github.com/scodec/scodec).
