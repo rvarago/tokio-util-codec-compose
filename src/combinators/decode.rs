@@ -2,6 +2,8 @@
 //!
 //! The operations take simpler decoders as inputs with customization functions and produce more powerful ones as output.
 
+// TODO: Split structs into modules (once per file?).
+
 use bytes::BytesMut;
 use std::{io, marker::PhantomData};
 use tokio_util::codec::Decoder;
