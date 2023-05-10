@@ -712,7 +712,7 @@ mod tests {
     fn decode_map_err_succeed() {
         let mut decoder = uint8()
             .try_map(|_| Ok::<_, io::Error>(0x42))
-            .map_err(|e| DecodeMapErrError::from(e));
+            .map_err(DecodeMapErrError::from);
 
         let mut src = BytesMut::from("\x01");
         let ok = decoder.decode(&mut src);
