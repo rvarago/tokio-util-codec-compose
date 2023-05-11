@@ -820,6 +820,25 @@ mod tests {
     }
 
     #[test]
+    fn decode_then_decoding_two_complete_frames() -> anyhow::Result<()> {
+        let mut decoder = uint8().then(uint8());
+
+        let mut src = BytesMut::from("\x01\x02");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x01, 0x02)));
+        assert_eq!(src, BytesMut::default());
+
+        let mut src = BytesMut::from("\x02\x03");
+        let value = decoder.decode(&mut src)?;
+
+        assert_eq!(value, Some((0x02, 0x03)));
+        assert_eq!(src, BytesMut::default());
+
+        Ok(())
+    }
+
+    #[test]
     fn decode_and_then_with_dependency_on_previous_value() -> anyhow::Result<()> {
         let mut decoder = uint8().and_then(|version| {
             if *version == 0x01 {
