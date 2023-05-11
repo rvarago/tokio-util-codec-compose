@@ -13,7 +13,7 @@ use tokio_util::codec::Decoder;
 fn main() -> Result<()> {
     let mut decoder = socks_request_decoder();
 
-    // SOCKS v4 request to CONNECT "Fred" to 66.102.7.99:80 => "\x04\x01\x00\x50\x42\x66\x07\x63\x46\x72\x65\x64\x00"
+    // SOCKS v4 request to CONNECT "Fred" to 66.102.7.99:80
 
     // Only a few bytes are available
     let mut src = BytesMut::from("\x04\x01");
