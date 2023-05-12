@@ -2,7 +2,7 @@
 
 pub mod ints;
 
-use super::decode::DecoderExt;
+use crate::combinators::decode::DecoderExt;
 
 use bytes::Bytes;
 use std::{io, net::Ipv4Addr};

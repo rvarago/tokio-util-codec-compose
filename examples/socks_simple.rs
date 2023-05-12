@@ -1,7 +1,7 @@
 //! A simple SOCKS v4 decoder without any validation during decoding.
 
 use tokio_util_codec_compose::{
-    decode::DecoderExt,
+    combinators::decode::DecoderExt,
     primitives::{delimited_by, ipv4, uint16_be, uint8},
 };
 
