@@ -8,7 +8,7 @@ use tokio_util::codec::Decoder;
 
 /// A decoder for applying a non-fallible transformation on the success type.
 ///
-/// The result of [`Decoder::map`].
+/// The result of [`super::DecoderExt::map`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMap<D, F> {
@@ -39,7 +39,7 @@ where
 
 /// A decoder for applying a non-fallible conversion onto the success type.
 ///
-/// The result of [`Decoder::map_into`].
+/// The result of [`super::DecoderExt::map_into`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapInto<D, B> {
@@ -73,7 +73,7 @@ where
 
 /// A decoder for applying a fallible transformation on the success type.
 ///
-/// The result of [`Decoder::try_map`].
+/// The result of [`super::DecoderExt::try_map`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderTryMap<D, F, E> {
@@ -110,7 +110,7 @@ where
 
 /// A decoder for applying a fallible conversion onto the success type.
 ///
-/// The result of [`Decoder::try_map_into`].
+/// The result of [`super::DecoderExt::try_map_into`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderTryMapInto<D, B, E> {
@@ -147,7 +147,7 @@ where
 
 /// A decoder for applying a fallible transformation on the error type.
 ///
-/// The result of [`Decoder::map_err`].
+/// The result of [`super::DecoderExt::map_err`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapErr<D, F> {
@@ -179,7 +179,7 @@ where
 
 /// A decoder for sequence decoders with no interdependency between each other.
 ///
-/// The result of [`Decoder::then`].
+/// The result of [`super::DecoderExt::then`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderThen<DFirst, DSecond, A, E> {
@@ -232,7 +232,7 @@ where
 
 /// A decoder for sequence decoders with interdependency between each other.
 ///
-/// The result of [`Decoder::and_then`].
+/// The result of [`super::DecoderExt::and_then`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderAndThen<DFirst, F, DSecond, A, E> {
@@ -298,7 +298,7 @@ where
 
 /// A decoder that boxes another decoder.
 ///
-/// The result of [`Decoder::boxed`].
+/// The result of [`super::DecoderExt::boxed`].
 #[must_use = "decoders do nothing unless used"]
 pub struct DecoderBoxed<A, E> {
     inner: Box<dyn Decoder<Item = A, Error = E>>,

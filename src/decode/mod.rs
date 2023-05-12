@@ -38,7 +38,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
         DecoderMap::new(self, f)
     }
 
-    /// Applies an [`B::from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
+    /// Applies an `B::from` `A` conversion over the decoded value when that is `Ok(Some(a))`.
     ///
     /// The conversion cannot fail. If you need a fallible conversion, then consider [`DecoderExt::try_map_into`].
     ///
@@ -116,7 +116,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
         DecoderTryMap::new(self, f)
     }
 
-    /// Applies an [`B::try_from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
+    /// Applies an `B::try_from` `A` conversion over the decoded value when that is `Ok(Some(a))`.
     ///
     /// The conversion can fail and that's handy when we interleave decoding with validation,
     /// for instance, when mapping from a larger domain (e.g. `u8`) into a smaller co-domain (e.g. `Version::v1`).
