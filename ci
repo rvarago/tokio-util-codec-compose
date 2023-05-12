@@ -8,6 +8,7 @@ default() {
 
 check() {
     _fmt
+    _doc
     _lint
     _test
     _examples
@@ -15,6 +16,10 @@ check() {
 
 _fmt() {
     cargo fmt --check
+}
+
+_doc() {
+    RUSTDOCFLAGS="-Dwarnings" cargo doc
 }
 
 _lint() {
