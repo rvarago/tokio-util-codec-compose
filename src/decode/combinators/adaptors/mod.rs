@@ -333,8 +333,10 @@ where
 mod tests {
     use super::*;
 
-    use super::super::DecoderExt;
-    use crate::primitives::{uint16_be, uint16_le, uint8};
+    use crate::decode::{
+        combinators::DecoderExt,
+        primitives::{uint16_be, uint16_le, uint8},
+    };
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};
     use tokio_util::codec::BytesCodec;

@@ -1,8 +1,8 @@
-//! Building blocks for with simple codec as primites for composition.
+//! Building blocks for with simple decoding primitives.
 
 pub mod ints;
 
-use crate::combinators::decode::DecoderExt;
+use super::combinators::DecoderExt;
 
 use bytes::Bytes;
 use std::{io, net::Ipv4Addr};
@@ -40,7 +40,7 @@ pub fn uint32_le() -> ints::U32LE {
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::primitives::ipv4;
+/// # use tokio_util_codec_compose::decode::primitives::ipv4;
 /// let mut decoder = ipv4();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x42\x66\x07\x63")).unwrap();

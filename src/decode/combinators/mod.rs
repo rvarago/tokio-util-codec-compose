@@ -22,7 +22,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// struct Device(u8);
@@ -47,7 +47,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// struct Device(u8);
@@ -82,7 +82,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// enum Version {
@@ -127,7 +127,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// # #[derive(Debug, PartialEq, Eq)]
     /// enum Version {
@@ -170,7 +170,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// fn decoder_operation() -> impl Decoder<Item = Operation, Error = std::io::Error> {
     /// #   uint8().try_map(|_| Err(std::io::Error::from(std::io::ErrorKind::Other)))
@@ -212,7 +212,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::DecoderExt, primitives::uint8};
+    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
     ///
     /// let pair = uint8().then(uint8()).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
     ///
@@ -253,7 +253,7 @@ pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
     /// ```
     /// # use tokio_util::codec::Decoder;
     /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::decode::{adaptors::DecoderBoxed, DecoderExt}, primitives::{uint8, uint16_be, uint16_le}};
+    /// use tokio_util_codec_compose::{decode::{combinators::{adaptors::DecoderBoxed, DecoderExt}, primitives::{uint8, uint16_be, uint16_le}}};
     ///
     /// fn payload_for_version(version: &u8) -> DecoderBoxed<u16, std::io::Error> {
     ///     if *version == 0x01 { uint16_be().boxed() } else { uint16_le().boxed() }
