@@ -1,8 +1,8 @@
 //! A SOCKS v4 decoder with validation interleaved with decoding.
 
 use tokio_util_codec_compose::{
-    combinators::DecoderExt,
-    elements::{delimited_by, ipv4, uint16_be, uint8},
+    decode::DecoderExt,
+    primitives::{delimited_by, ipv4, uint16_be, uint8},
 };
 
 use anyhow::Result;

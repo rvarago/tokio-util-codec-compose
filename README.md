@@ -30,7 +30,7 @@ To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-
 Decoding a SOCKS v4 CONNECT request with no validation interleaved with decoding:
 
 ```rust
-use tokio_util_codec_compose::{combinators::DecoderExt, elements::*};
+use tokio_util_codec_compose::{decode::DecoderExt, primitives::*};
 
 use anyhow::Result;
 use bytes::BytesMut;

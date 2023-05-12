@@ -1,319 +1,10 @@
-//! A set of structures and compositional operations on [`Decoder`].
-//!
-//! The operations take simpler decoders as inputs with customization functions and produce more powerful ones as output.
+//! A set of adaptors implementing compositional operations for decodingx.
 
 // TODO: Split structs into modules (once per file?).
 
 use bytes::BytesMut;
 use std::{io, marker::PhantomData};
 use tokio_util::codec::Decoder;
-
-/// Extension of [`Decoder`] with compositional operations.
-pub trait DecoderExt<A, E>: Decoder<Item = A, Error = E> {
-    /// Applies a function `f` of type `A -> B` over the decoded value when that is `Ok(Some(a))`.
-    ///
-    /// The function `f` cannot fail. If you need a fallible mapping, then consider [`DecoderExt::try_map`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct Device(u8);
-    ///
-    /// let device = uint8().map(Device).decode(&mut BytesMut::from("\x2A")).unwrap();
-    /// assert_eq!(device, Some(Device(42)));
-    /// ```
-    fn map<F, B>(self, f: F) -> DecoderMap<Self, F>
-    where
-        F: Fn(A) -> B,
-        Self: Sized,
-    {
-        DecoderMap { inner: self, f }
-    }
-
-    /// Applies an [`B::from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
-    ///
-    /// The conversion cannot fail. If you need a fallible conversion, then consider [`DecoderExt::try_map_into`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct Device(u8);
-    ///
-    /// impl From<u8> for Device {
-    ///     fn from(value: u8) -> Self {
-    ///         Self(value)
-    ///     }
-    /// }
-    ///
-    /// let device = uint8().map_into::<Device>().decode(&mut BytesMut::from("\x2A")).unwrap();
-    /// assert_eq!(device, Some(Device(42)));
-    /// ```
-    fn map_into<B>(self) -> DecoderMapInto<Self, B>
-    where
-        B: From<A>,
-        Self: Sized,
-    {
-        DecoderMapInto {
-            inner: self,
-            _target: PhantomData,
-        }
-    }
-
-    /// Applies a fallible function `f` of type `A -> Result<B, EE>` over the decoded value when that is `Ok(Some(a))`.
-    ///
-    /// The function `f` can fail and that's handy when we interleave decoding with validation,
-    /// for instance, when mapping from a larger domain (e.g. `u8`) into a smaller co-domain (e.g. `Version::v1`).
-    /// If you don't need a fallible mapping, then consider [`DecoderExt::map`].
-    ///
-    /// The mapping can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// enum Version {
-    ///     V1
-    /// }
-    ///
-    /// impl TryFrom<u8> for Version {
-    ///     type Error = std::io::Error;
-    ///
-    ///     fn try_from(value: u8) -> Result<Self, Self::Error> {
-    ///             match value {
-    ///                 1 => Ok(Version::V1),
-    ///                 _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
-    ///             }
-    ///     }
-    /// }
-    ///
-    /// let mut decoder = uint8().try_map(Version::try_from);
-    ///
-    /// let version_ok = decoder.decode(&mut BytesMut::from("\x01")).unwrap();
-    /// assert_eq!(version_ok, Some(Version::V1));
-    ///
-    /// let version_err = decoder.decode(&mut BytesMut::from("\x02")).unwrap_err();
-    /// assert_eq!(version_err.kind(), std::io::ErrorKind::InvalidData);
-    /// ```
-    fn try_map<F, B, EE>(self, f: F) -> DecoderTryMap<Self, F, EE>
-    where
-        F: Fn(A) -> Result<B, EE>,
-        Self: Sized,
-    {
-        DecoderTryMap {
-            inner: self,
-            f,
-            _error: PhantomData,
-        }
-    }
-
-    /// Applies an [`B::try_from`] `A` conversion over the decoded value when that is `Ok(Some(a))`.
-    ///
-    /// The conversion can fail and that's handy when we interleave decoding with validation,
-    /// for instance, when mapping from a larger domain (e.g. `u8`) into a smaller co-domain (e.g. `Version::v1`).
-    /// If you don't need a fallible conversion, then consider [`DecoderExt::map`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// enum Version {
-    ///     V1
-    /// }
-    ///
-    /// impl TryFrom<u8> for Version {
-    ///     type Error = std::io::Error;
-    ///
-    ///     fn try_from(value: u8) -> Result<Self, Self::Error> {
-    ///             match value {
-    ///                 1 => Ok(Version::V1),
-    ///                 _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData))
-    ///             }
-    ///     }
-    /// }
-    ///
-    /// let mut decoder = uint8().try_map_into::<Version>();
-    ///
-    /// let version_ok = decoder.decode(&mut BytesMut::from("\x01")).unwrap();
-    /// assert_eq!(version_ok, Some(Version::V1));
-    ///
-    /// let version_err = decoder.decode(&mut BytesMut::from("\x02")).unwrap_err();
-    /// assert_eq!(version_err.kind(), std::io::ErrorKind::InvalidData);
-    /// ```
-    fn try_map_into<B>(self) -> DecoderTryMapInto<Self, B, B::Error>
-    where
-        B: TryFrom<A>,
-        Self: Sized,
-    {
-        DecoderTryMapInto {
-            inner: self,
-            _target: PhantomData,
-            _error: PhantomData,
-        }
-    }
-
-    /// Applies a function `f` of type `E -> EE` over the decoding error when that is `Err(e)`.
-    ///
-    /// That's handy when we need to adapt errors across boundaries.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// fn decoder_operation() -> impl Decoder<Item = Operation, Error = std::io::Error> {
-    /// #   uint8().try_map(|_| Err(std::io::Error::from(std::io::ErrorKind::Other)))
-    /// }
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// enum Operation {
-    ///     TurnOff, Turning
-    /// }
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct OperationError;
-    ///
-    /// impl From<std::io::Error> for OperationError {
-    ///     fn from(value: std::io::Error) -> Self {
-    ///         Self
-    ///     }
-    /// }
-    ///
-    /// let err = decoder_operation().map_err(|_| OperationError).decode(&mut BytesMut::from("\x00")); // invalid operation number
-    /// assert_eq!(err, Err(OperationError));
-    /// ```
-    fn map_err<F, EE>(self, f: F) -> DecoderMapErr<Self, F>
-    where
-        F: Fn(E) -> EE,
-        Self: Sized,
-    {
-        DecoderMapErr { inner: self, f }
-    }
-
-    /// Chains a decoder of `B` on the *remaining* bytes after applying this decoder, then returns a pair of the individual values `(a, b)`.
-    ///
-    /// This enables the application of decoders in sequence where a step does not depend on its predecessor (when such a dependency exists, consider [`DecoderExt::and_then`].
-    ///
-    /// The next decoder can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::DecoderExt, elements::uint8};
-    ///
-    /// let pair = uint8().then(uint8()).decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
-    ///
-    /// assert_eq!(pair, Some((0x2A, 0x3B)));
-    /// ```
-    // TODO: Flatten resulting tuple.
-    fn then<DNext, B, EE>(self, next: DNext) -> DecoderThen<Self, DNext, A, EE>
-    where
-        DNext: Decoder<Item = B, Error = EE>,
-        EE: From<E>,
-        Self: Sized,
-    {
-        DecoderThen {
-            first: self,
-            second: next,
-            first_value: None,
-            _error: PhantomData,
-        }
-    }
-
-    /// Chains a function `f` of type `&A -> Box<Decoder<Item = B, Error = E>>` over the decoded value when that is `Ok(Some(a))`.
-    ///
-    /// Contrary to [`DecoderExt::map`], the function `f` can decide (dynamically) which decoder to return next according to `a`, which enables complex behaviors
-    /// out of simple building blocks by defining dependency relationships between decoders.
-    /// e.g. first we decode the header of a message and use that information, say protocol version, to then select the appropriate
-    /// decoder among multiple candidates, say one per protocol version, for the body.
-    ///
-    /// The next decoder can return an error type `EE` other than `E` as long as there is an implicit conversion [`From<E>`].
-    ///
-    /// The function `f` cannot fail.
-    ///
-    /// Notice that `f` can't take ownership of the first value `a`, hence the shared borrow, because otherwise it would not be possible to decode incomplete frames
-    /// without cloning or maybe saving incoming bytes and re-running this decoder. If you need access to the first value, use [`DecoderAndThen::first_value`]
-    /// or [`DecoderAndThen::first_value_as_mut`].
-    ///
-    /// # Stateful decoders and multi-frames
-    ///
-    /// Due to the stateful behaviour of this combinator, if you need to decode multiple frames, you'd need to [`DecoderAndThen::reset`] between frames to clean up
-    /// the previous value `a` and therefore its influence on `b`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{combinators::{decode::DecoderBoxed, DecoderExt}, elements::{uint8, uint16_be, uint16_le}};
-    ///
-    /// fn payload_for_version(version: &u8) -> DecoderBoxed<u16, std::io::Error> {
-    ///     if *version == 0x01 { uint16_be().boxed() } else { uint16_le().boxed() }
-    /// }
-    ///
-    /// let mut decoder = uint8().and_then(payload_for_version);
-    ///
-    /// let device_big_endian = decoder.decode(&mut BytesMut::from("\x01\x2A\x3B")).unwrap();
-    /// assert_eq!(device_big_endian, Some(0x2A3B));
-    ///
-    /// decoder.reset();
-    ///
-    /// let device_little_endian = decoder.decode(&mut BytesMut::from("\x00\x2A\x3B")).unwrap();
-    /// assert_eq!(device_little_endian, Some(0x3B2A));
-    /// ```
-    fn and_then<F, DNext, B, EE>(self, f: F) -> DecoderAndThen<Self, F, DNext, A, EE>
-    where
-        F: Fn(&A) -> DNext,
-        DNext: Decoder<Item = B, Error = EE>,
-        EE: From<E>,
-        Self: Sized,
-    {
-        DecoderAndThen {
-            first: self,
-            to_second: f,
-            _second: PhantomData,
-            first_value: None,
-            _error: PhantomData,
-        }
-    }
-
-    /// Shorthand for boxing this decoder while also widening its type to ease inference and spelling.
-    ///
-    /// That's probably useful when combined with [`DecoderExt::and_then`] where the continuation
-    /// yields decoders with different types.
-    fn boxed(self) -> DecoderBoxed<A, E>
-    where
-        Self: Sized,
-        Self: 'static,
-    {
-        DecoderBoxed {
-            inner: Box::new(self),
-        }
-    }
-}
-
-impl<D, A, E> DecoderExt<A, E> for D where D: Decoder<Item = A, Error = E> {}
 
 /// A decoder for applying a non-fallible transformation on the success type.
 ///
@@ -323,6 +14,12 @@ impl<D, A, E> DecoderExt<A, E> for D where D: Decoder<Item = A, Error = E> {}
 pub struct DecoderMap<D, F> {
     inner: D,
     f: F,
+}
+
+impl<D, F> DecoderMap<D, F> {
+    pub(super) fn new(inner: D, f: F) -> Self {
+        Self { inner, f }
+    }
 }
 
 impl<D, F, A, B, E> Decoder for DecoderMap<D, F>
@@ -350,6 +47,15 @@ pub struct DecoderMapInto<D, B> {
     _target: PhantomData<B>,
 }
 
+impl<D, B> DecoderMapInto<D, B> {
+    pub(super) fn new(inner: D) -> Self {
+        Self {
+            inner,
+            _target: PhantomData,
+        }
+    }
+}
+
 impl<D, A, B, E> Decoder for DecoderMapInto<D, B>
 where
     D: Decoder<Item = A, Error = E>,
@@ -374,6 +80,16 @@ pub struct DecoderTryMap<D, F, E> {
     inner: D,
     f: F,
     _error: PhantomData<E>,
+}
+
+impl<D, F, E> DecoderTryMap<D, F, E> {
+    pub(super) fn new(inner: D, f: F) -> Self {
+        Self {
+            inner,
+            f,
+            _error: PhantomData,
+        }
+    }
 }
 
 impl<D, F, A, B, E, EE> Decoder for DecoderTryMap<D, F, EE>
@@ -403,6 +119,16 @@ pub struct DecoderTryMapInto<D, B, E> {
     _error: PhantomData<E>,
 }
 
+impl<D, B, E> DecoderTryMapInto<D, B, E> {
+    pub(super) fn new(inner: D) -> Self {
+        Self {
+            inner,
+            _target: PhantomData,
+            _error: PhantomData,
+        }
+    }
+}
+
 impl<D, A, B, E, EE> Decoder for DecoderTryMapInto<D, B, EE>
 where
     D: Decoder<Item = A, Error = E>,
@@ -427,6 +153,12 @@ where
 pub struct DecoderMapErr<D, F> {
     inner: D,
     f: F,
+}
+
+impl<D, F> DecoderMapErr<D, F> {
+    pub(super) fn new(inner: D, f: F) -> Self {
+        Self { inner, f }
+    }
 }
 
 impl<D, F, A, E, EE> Decoder for DecoderMapErr<D, F>
@@ -455,6 +187,17 @@ pub struct DecoderThen<DFirst, DSecond, A, E> {
     second: DSecond,
     first_value: Option<A>,
     _error: PhantomData<E>,
+}
+
+impl<DFirst, DSecond, A, E> DecoderThen<DFirst, DSecond, A, E> {
+    pub(super) fn new(first: DFirst, second: DSecond) -> Self {
+        Self {
+            first,
+            second,
+            first_value: None,
+            _error: PhantomData,
+        }
+    }
 }
 
 impl<DFirst, DSecond, A, B, EA, EB, EE> Decoder for DecoderThen<DFirst, DSecond, A, EE>
@@ -501,6 +244,16 @@ pub struct DecoderAndThen<DFirst, F, DSecond, A, E> {
 }
 
 impl<DFirst, F, DSecond, A, EE> DecoderAndThen<DFirst, F, DSecond, A, EE> {
+    pub(super) fn new(first: DFirst, to_second: F) -> Self {
+        Self {
+            first,
+            to_second,
+            _second: PhantomData,
+            first_value: None,
+            _error: PhantomData,
+        }
+    }
+
     /// Accesses the first decoder value.
     pub fn first_value(&self) -> Option<&A> {
         self.first_value.as_ref()
@@ -551,6 +304,18 @@ pub struct DecoderBoxed<A, E> {
     inner: Box<dyn Decoder<Item = A, Error = E>>,
 }
 
+impl<A, E> DecoderBoxed<A, E> {
+    pub(super) fn new<D>(inner: D) -> Self
+    where
+        D: Decoder<Item = A, Error = E>,
+        D: 'static,
+    {
+        Self {
+            inner: Box::new(inner),
+        }
+    }
+}
+
 impl<A, E> Decoder for DecoderBoxed<A, E>
 where
     E: From<io::Error>,
@@ -567,7 +332,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::elements::{uint16_be, uint16_le, uint8};
+
+    use super::super::DecoderExt;
+    use crate::primitives::{uint16_be, uint16_le, uint8};
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};
     use tokio_util::codec::BytesCodec;
