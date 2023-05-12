@@ -46,13 +46,6 @@ mod tests {
 
     #[test]
     fn decode_map_into() -> anyhow::Result<()> {
-        #[derive(Debug, PartialEq, Eq)]
-        struct Device(u8);
-        impl From<u8> for Device {
-            fn from(value: u8) -> Self {
-                Self(value)
-            }
-        }
         let mut decoder = uint8().map_into::<Device>();
 
         let mut src = BytesMut::from("\x01");
@@ -62,5 +55,13 @@ mod tests {
         assert_eq!(src, BytesMut::default());
 
         Ok(())
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Device(u8);
+    impl From<u8> for Device {
+        fn from(value: u8) -> Self {
+            Self(value)
+        }
     }
 }

@@ -49,22 +49,6 @@ mod tests {
 
     #[test]
     fn decode_try_map_into_succeed() {
-        #[derive(Debug, PartialEq, Eq)]
-        enum Version {
-            V1,
-        }
-
-        impl TryFrom<u8> for Version {
-            type Error = std::io::Error;
-
-            fn try_from(value: u8) -> Result<Self, Self::Error> {
-                match value {
-                    1 => Ok(Version::V1),
-                    _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
-                }
-            }
-        }
-
         let mut decoder = uint8().try_map_into::<Version>();
 
         let mut src = BytesMut::from("\x01");
@@ -76,22 +60,6 @@ mod tests {
 
     #[test]
     fn decode_try_map_into_fail() {
-        #[derive(Debug, PartialEq, Eq)]
-        enum Version {
-            V1,
-        }
-
-        impl TryFrom<u8> for Version {
-            type Error = std::io::Error;
-
-            fn try_from(value: u8) -> Result<Self, Self::Error> {
-                match value {
-                    1 => Ok(Version::V1),
-                    _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
-                }
-            }
-        }
-
         let mut decoder = uint8().try_map_into::<Version>();
 
         let mut src = BytesMut::from("\x02");
@@ -100,5 +68,21 @@ mod tests {
 
         assert!(matches!(err_kind, Err(io::ErrorKind::InvalidData)));
         assert_eq!(src, BytesMut::default());
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    enum Version {
+        V1,
+    }
+
+    impl TryFrom<u8> for Version {
+        type Error = std::io::Error;
+
+        fn try_from(value: u8) -> Result<Self, Self::Error> {
+            match value {
+                1 => Ok(Version::V1),
+                _ => Err(std::io::Error::from(std::io::ErrorKind::InvalidData)),
+            }
+        }
     }
 }
