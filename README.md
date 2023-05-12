@@ -30,8 +30,6 @@ To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-
 Decoding a SOCKS v4 CONNECT request with no validation interleaved with decoding:
 
 ```rust
-use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::*}};
-
 use anyhow::Result;
 use bytes::BytesMut;
 use std::net::Ipv4Addr;
@@ -59,6 +57,8 @@ fn main() -> Result<()> {
 }
 
 fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
+    use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::*}};
+
     uint8()
         .then(uint8())
         .then(uint16_be())
