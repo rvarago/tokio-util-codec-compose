@@ -10,9 +10,9 @@ A Rust library with building blocks for composing [tokio-util](https://docs.rs/t
 
 Decoding communication protocols from byte streams usually involves the combination of multiple steps, e.g. decode the header and then the payload. Also, decoders often have state, e.g. we have multiple decoders for the payload where we select the appropriate one based on the header.
 
-However, we may find ourselves repeating the same sequence of decoding steps multiple times and possibly judging their correctness only as part of larger sequence, not in terms of the individual steps; again multiple times.
+However, we may find ourselves repeating the same sequence of decoding steps multiple times and possibly judging their correctness only as part of a larger sequence, not in terms of the individual steps; again multiple times.
 
-To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communications protocols, for both stateless and stateful protocols.
+To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communication protocols, for both stateless and stateful protocols.
 
 ## Features
 
@@ -22,7 +22,7 @@ To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-
 ## Roadmap
 
 - Add more combinators
-- Add support for encoding
+- Add support for encoding, e.g. `contra_map`
 - Flatten nested tuples
 
 ## Examples
