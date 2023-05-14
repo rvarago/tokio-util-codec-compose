@@ -4,3 +4,5 @@
 
 pub mod combinators;
 pub mod primitives;
+
+pub use combinators::DecoderExt;

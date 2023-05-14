@@ -57,7 +57,7 @@ fn main() -> Result<()> {
 }
 
 fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
-    use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::*}};
+    use tokio_util_codec_compose::{decode::{DecoderExt, primitives::*}};
 
     uint8()
         .then(uint8())
