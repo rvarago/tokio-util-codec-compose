@@ -33,7 +33,7 @@ pub fn uint32_le() -> ints::U32LE {
     ints::U32LE::default()
 }
 
-/// Codec for an [`Ipv4Addr`] as a sequence of four contiguous [`u8`].
+/// Decoder for an [`Ipv4Addr`] as a sequence of four contiguous [`u8`].
 ///
 /// # Examples
 ///
