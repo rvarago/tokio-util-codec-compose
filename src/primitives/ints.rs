@@ -1,10 +1,12 @@
-//! Decoder for integers.
+//! Codec for integers.
 
-use bytes::Buf;
+use bytes::{Buf, BufMut};
 
-/// Decoder for an [`u8`].
+/// Codec for an [`u8`].
 ///
 /// # Examples
+///
+/// ## Decoding
 ///
 /// ```
 /// # use bytes::BytesMut;
@@ -16,13 +18,29 @@ use bytes::Buf;
 ///
 /// assert_eq!(res, Some(42))
 /// ```
+///
+/// ## Encoding
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Encoder;
+/// # use tokio_util_codec_compose::primitives::ints::U8;
+/// let mut encoder = U8::default();
+///
+/// let mut dst = BytesMut::default();
+/// encoder.encode(0x2A, &mut dst).unwrap();
+///
+/// assert_eq!(dst, BytesMut::from("\x2A"))
+/// ```
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U8;
 
-/// Decoder for an [`u16`] big-endian.
+/// Codec for an [`u16`] big-endian.
 ///
 /// # Examples
+///
+/// ## Decoding
 ///
 /// ```
 /// # use bytes::BytesMut;
@@ -34,13 +52,29 @@ pub struct U8;
 ///
 /// assert_eq!(res, Some(0x2A3B))
 /// ```
-#[must_use = "decoders do nothing unless used"]
+///
+/// ## Encoding
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Encoder;
+/// # use tokio_util_codec_compose::primitives::ints::U16BE;
+/// let mut encoder = U16BE::default();
+///
+/// let mut dst = BytesMut::default();
+/// encoder.encode(0x2A3B, &mut dst).unwrap();
+///
+/// assert_eq!(dst, BytesMut::from("\x2A\x3B"))
+/// ```
+#[must_use = "codecs do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U16BE;
 
-/// Decoder for an [`u16`] little-endian.
+/// Codec for an [`u16`] little-endian.
 ///
 /// # Examples
+///
+/// ## Decoding
 ///
 /// ```
 /// # use bytes::BytesMut;
@@ -52,13 +86,29 @@ pub struct U16BE;
 ///
 /// assert_eq!(res, Some(0x3B2A))
 /// ```
-#[must_use = "decoders do nothing unless used"]
+///
+/// ## Encoding
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Encoder;
+/// # use tokio_util_codec_compose::primitives::ints::U16LE;
+/// let mut encoder = U16LE::default();
+///
+/// let mut dst = BytesMut::default();
+/// encoder.encode(0x2A3B, &mut dst).unwrap();
+///
+/// assert_eq!(dst, BytesMut::from("\x3B\x2A"))
+/// ```
+#[must_use = "codecs do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U16LE;
 
-/// Decoder for an [`u32`] big-endian.
+/// Codec for an [`u32`] big-endian.
 ///
 /// # Examples
+///
+/// ## Decoding
 ///
 /// ```
 /// # use bytes::BytesMut;
@@ -70,13 +120,29 @@ pub struct U16LE;
 ///
 /// assert_eq!(res, Some(0x2A3B4C5D))
 /// ```
-#[must_use = "decoders do nothing unless used"]
+///
+/// ## Encoding
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Encoder;
+/// # use tokio_util_codec_compose::primitives::ints::U32BE;
+/// let mut encoder = U32BE::default();
+///
+/// let mut dst = BytesMut::default();
+/// encoder.encode(0x2A3B4C5D, &mut dst).unwrap();
+///
+/// assert_eq!(dst, BytesMut::from("\x2A\x3B\x4C\x5D"))
+/// ```
+#[must_use = "codecs do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U32BE;
 
-/// Decoder for an [`u32`] little-endian.
+/// Codec for an [`u32`] little-endian.
 ///
 /// # Examples
+///
+/// ## Decoding
 ///
 /// ```
 /// # use bytes::BytesMut;
@@ -88,7 +154,21 @@ pub struct U32BE;
 ///
 /// assert_eq!(res, Some(0x5D4C3B2A))
 /// ```
-#[must_use = "decoders do nothing unless used"]
+///
+/// ## Encoding
+///
+/// ```
+/// # use bytes::BytesMut;
+/// # use tokio_util::codec::Encoder;
+/// # use tokio_util_codec_compose::primitives::ints::U32LE;
+/// let mut encoder = U32LE::default();
+///
+/// let mut dst = BytesMut::default();
+/// encoder.encode(0x5D4C3B2A, &mut dst).unwrap();
+///
+/// assert_eq!(dst, BytesMut::from("\x2A\x3B\x4C\x5D"))
+/// ```
+#[must_use = "codecs do nothing unless used"]
 #[derive(Debug, Default)]
 pub struct U32LE;
 
@@ -118,6 +198,30 @@ impl_decoder!(U16BE, u16, 2, get_u16);
 impl_decoder!(U16LE, u16, 2, get_u16_le);
 impl_decoder!(U32BE, u32, 4, get_u32);
 impl_decoder!(U32LE, u32, 4, get_u32_le);
+
+macro_rules! impl_encoder {
+    ($type:ty, $value:ty, $len:expr, $put:ident) => {
+        impl ::tokio_util::codec::Encoder<$value> for $type {
+            type Error = std::io::Error;
+
+            fn encode(
+                &mut self,
+                item: $value,
+                dst: &mut ::bytes::BytesMut,
+            ) -> Result<(), Self::Error> {
+                dst.reserve($len);
+                dst.$put(item);
+                Ok(())
+            }
+        }
+    };
+}
+
+impl_encoder!(U8, u8, 1, put_u8);
+impl_encoder!(U16BE, u16, 2, put_u16);
+impl_encoder!(U16LE, u16, 2, put_u16_le);
+impl_encoder!(U32BE, u32, 4, put_u32);
+impl_encoder!(U32LE, u32, 4, put_u32_le);
 
 #[cfg(test)]
 mod tests {
