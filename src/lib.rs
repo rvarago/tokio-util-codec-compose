@@ -2,3 +2,4 @@
 
 #[warn(missing_docs)]
 pub mod decode;
+pub mod encode;
