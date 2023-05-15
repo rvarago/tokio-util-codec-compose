@@ -37,7 +37,7 @@ fn main() -> Result<()> {
         Some(SocksRequest {
             version: Version::V4,
             command: Command::Connect,
-            destination_port: 80,
+            destination_port: Port(80),
             destination_ip: "66.102.7.99".parse()?,
             user_id: "Fred".into(),
         }),
@@ -51,29 +51,44 @@ fn main() -> Result<()> {
 }
 
 fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::Error> {
-    uint8()
-        .try_map_into::<Version>()
-        .then(uint8().try_map_into::<Command>())
-        .then(uint16_be())
+    version()
+        .then(command())
+        .then(port())
         .then(ipv4())
-        .then(delimited_by([b'\x00'], 255))
+        .then(user_id())
         .map(
             |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
                 version,
                 command,
                 destination_port,
                 destination_ip,
-                user_id: String::from_utf8_lossy(&user_id).into_owned(),
+                user_id,
             },
         )
         .map_err(|e| anyhow::format_err!("could not decode socks request, reason: {e}"))
+}
+
+fn version() -> impl Decoder<Item = Version, Error = io::Error> {
+    uint8().try_map_into()
+}
+
+fn command() -> impl Decoder<Item = Command, Error = io::Error> {
+    uint8().try_map_into()
+}
+
+fn port() -> impl Decoder<Item = Port, Error = io::Error> {
+    uint16_be().map_into()
+}
+
+fn user_id() -> impl Decoder<Item = String, Error = tokio_util::codec::AnyDelimiterCodecError> {
+    delimited_by([b'\x00'], 255).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
 }
 
 #[derive(Debug, PartialEq, Eq)]
 struct SocksRequest {
     version: Version,
     command: Command,
-    destination_port: u16,
+    destination_port: Port,
     destination_ip: Ipv4Addr,
     user_id: String,
 }
@@ -113,5 +128,14 @@ impl TryFrom<u8> for Command {
                 "unexpected command {value}",
             )),
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct Port(u16);
+
+impl From<u16> for Port {
+    fn from(value: u16) -> Self {
+        Port(value)
     }
 }
