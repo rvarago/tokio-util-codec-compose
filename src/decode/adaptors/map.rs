@@ -6,7 +6,7 @@ use tokio_util::codec::Decoder;
 
 /// A decoder for applying a non-fallible transformation on the success type.
 ///
-/// The result of [`crate::decode::combinators::DecoderExt::map`].
+/// The result of [`crate::decode::DecoderExt::map`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMap<D, F> {
@@ -15,7 +15,7 @@ pub struct DecoderMap<D, F> {
 }
 
 impl<D, F> DecoderMap<D, F> {
-    pub(in crate::decode::combinators) fn new(inner: D, f: F) -> Self {
+    pub(in crate::decode) fn new(inner: D, f: F) -> Self {
         Self { inner, f }
     }
 }
@@ -39,7 +39,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::{decode::combinators::DecoderExt, primitives::uint8};
+    use crate::{decode::DecoderExt, primitives::uint8};
 
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};

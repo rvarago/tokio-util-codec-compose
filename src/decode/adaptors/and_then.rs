@@ -6,7 +6,7 @@ use tokio_util::codec::Decoder;
 
 /// A decoder for sequence decoders with interdependency between each other.
 ///
-/// The result of [`crate::decode::combinators::DecoderExt::and_then`].
+/// The result of [`crate::decode::DecoderExt::and_then`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderAndThen<DFirst, F, DSecond, A, E> {
@@ -18,7 +18,7 @@ pub struct DecoderAndThen<DFirst, F, DSecond, A, E> {
 }
 
 impl<DFirst, F, DSecond, A, EE> DecoderAndThen<DFirst, F, DSecond, A, EE> {
-    pub(in crate::decode::combinators) fn new(first: DFirst, to_second: F) -> Self {
+    pub(in crate::decode) fn new(first: DFirst, to_second: F) -> Self {
         Self {
             first,
             to_second,
@@ -75,7 +75,7 @@ mod tests {
     use super::*;
 
     use crate::{
-        decode::combinators::DecoderExt,
+        decode::DecoderExt,
         primitives::{uint16_be, uint16_le, uint8},
     };
 

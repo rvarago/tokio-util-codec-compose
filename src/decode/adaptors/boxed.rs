@@ -6,14 +6,14 @@ use tokio_util::codec::Decoder;
 
 /// A decoder that boxes another decoder.
 ///
-/// The result of [`crate::decode::combinators::DecoderExt::boxed`].
+/// The result of [`crate::decode::DecoderExt::boxed`].
 #[must_use = "decoders do nothing unless used"]
 pub struct DecoderBoxed<A, E> {
     inner: Box<dyn Decoder<Item = A, Error = E>>,
 }
 
 impl<A, E> DecoderBoxed<A, E> {
-    pub(in crate::decode::combinators) fn new<D>(inner: D) -> Self
+    pub(in crate::decode) fn new<D>(inner: D) -> Self
     where
         D: Decoder<Item = A, Error = E>,
         D: 'static,

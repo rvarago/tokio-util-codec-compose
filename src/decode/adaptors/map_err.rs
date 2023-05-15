@@ -6,7 +6,7 @@ use tokio_util::codec::Decoder;
 
 /// A decoder for applying a fallible transformation on the error type.
 ///
-/// The result of [`crate::decode::combinators::DecoderExt::map_err`].
+/// The result of [`crate::decode::DecoderExt::map_err`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapErr<D, F> {
@@ -15,7 +15,7 @@ pub struct DecoderMapErr<D, F> {
 }
 
 impl<D, F> DecoderMapErr<D, F> {
-    pub(in crate::decode::combinators) fn new(inner: D, f: F) -> Self {
+    pub(in crate::decode) fn new(inner: D, f: F) -> Self {
         Self { inner, f }
     }
 }
@@ -40,7 +40,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::{decode::combinators::DecoderExt, primitives::uint8};
+    use crate::{decode::DecoderExt, primitives::uint8};
 
     #[test]
     fn decode_map_err_succeed() {

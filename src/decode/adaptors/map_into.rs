@@ -6,7 +6,7 @@ use tokio_util::codec::Decoder;
 
 /// A decoder for applying a non-fallible conversion onto the success type.
 ///
-/// The result of [`crate::decode::combinators::DecoderExt::map_into`].
+/// The result of [`crate::decode::DecoderExt::map_into`].
 #[must_use = "decoders do nothing unless used"]
 #[derive(Debug)]
 pub struct DecoderMapInto<D, B> {
@@ -15,7 +15,7 @@ pub struct DecoderMapInto<D, B> {
 }
 
 impl<D, B> DecoderMapInto<D, B> {
-    pub(in crate::decode::combinators) fn new(inner: D) -> Self {
+    pub(in crate::decode) fn new(inner: D) -> Self {
         Self {
             inner,
             _target: PhantomData,
@@ -42,7 +42,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::{decode::combinators::DecoderExt, primitives::uint8};
+    use crate::{decode::DecoderExt, primitives::uint8};
 
     #[test]
     fn decode_map_into() -> anyhow::Result<()> {
