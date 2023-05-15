@@ -39,7 +39,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::decode::{combinators::DecoderExt, primitives::uint8};
+    use crate::{decode::combinators::DecoderExt, primitives::uint8};
 
     use proptest::prelude::*;
     use std::{convert::identity as id, fmt::Debug};

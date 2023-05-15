@@ -9,7 +9,7 @@ use bytes::Buf;
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::decode::primitives::ints::U8;
+/// # use tokio_util_codec_compose::primitives::ints::U8;
 /// let mut decoder = U8::default();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x2A")).unwrap();
@@ -27,7 +27,7 @@ pub struct U8;
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::decode::primitives::ints::U16BE;
+/// # use tokio_util_codec_compose::primitives::ints::U16BE;
 /// let mut decoder = U16BE::default();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
@@ -45,7 +45,7 @@ pub struct U16BE;
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::decode::primitives::ints::U16LE;
+/// # use tokio_util_codec_compose::primitives::ints::U16LE;
 /// let mut decoder = U16LE::default();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B")).unwrap();
@@ -63,7 +63,7 @@ pub struct U16LE;
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::decode::primitives::ints::U32BE;
+/// # use tokio_util_codec_compose::primitives::ints::U32BE;
 /// let mut decoder = U32BE::default();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();
@@ -81,7 +81,7 @@ pub struct U32BE;
 /// ```
 /// # use bytes::BytesMut;
 /// # use tokio_util::codec::Decoder;
-/// # use tokio_util_codec_compose::decode::primitives::ints::U32LE;
+/// # use tokio_util_codec_compose::primitives::ints::U32LE;
 /// let mut decoder = U32LE::default();
 ///
 /// let res = decoder.decode(&mut BytesMut::from("\x2A\x3B\x4C\x5D")).unwrap();

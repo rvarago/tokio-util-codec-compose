@@ -61,8 +61,8 @@ where
 mod tests {
     use super::*;
 
-    use crate::decode::{
-        combinators::DecoderExt,
+    use crate::{
+        decode::combinators::DecoderExt,
         primitives::{uint16_be, uint8},
     };
 

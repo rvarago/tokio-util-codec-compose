@@ -19,18 +19,6 @@ pub trait EncoderExt<A, E>: Encoder<A, Error = E> {
     /// The function `f` cannot fail.
     ///
     /// # Examples
-    ///
-    /// ```
-    /// # use tokio_util::codec::Decoder;
-    /// # use bytes::BytesMut;
-    /// use tokio_util_codec_compose::{decode::{combinators::DecoderExt, primitives::uint8}};
-    ///
-    /// # #[derive(Debug, PartialEq, Eq)]
-    /// struct Device(u8);
-    ///
-    /// let device = uint8().map(Device).decode(&mut BytesMut::from("\x2A")).unwrap();
-    /// assert_eq!(device, Some(Device(42)));
-    /// ```
     fn contra_map<F, B>(self, f: F) -> EncoderContraMap<Self, F>
     where
         F: Fn(B) -> A,

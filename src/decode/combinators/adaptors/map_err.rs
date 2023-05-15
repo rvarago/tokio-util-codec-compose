@@ -40,7 +40,7 @@ where
 mod tests {
     use super::*;
 
-    use crate::decode::{combinators::DecoderExt, primitives::uint8};
+    use crate::{decode::combinators::DecoderExt, primitives::uint8};
 
     #[test]
     fn decode_map_err_succeed() {
