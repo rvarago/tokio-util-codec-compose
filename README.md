@@ -27,6 +27,16 @@ To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-
 
 ## Examples
 
+### Decoding
+
+Conceptually, you can think of a `Decoder<Item = T>` as an `Option<T>` in the sense that you can
+`map` it, sequence it with an `and_then`, etc. That with an extra twist:
+decoders can carry state around while decoding a frame, e.g. wait for `N` bytes, then decide whether to read `M` or `Q` bytes, and so on. This might translate
+into a state-machine which explicitly state tracking, which may get tedious.
+
+For some decoding patterns, you can leverage the compositional operations provided by this library, you can build complex decoders
+out of simpler building blocks that you can develop, test, and reason about, in isolation.
+
 Decoding a SOCKS v4 CONNECT request with no validation interleaved with decoding:
 
 ```rust
