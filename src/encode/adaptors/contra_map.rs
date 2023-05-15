@@ -6,7 +6,7 @@ use tokio_util::codec::Encoder;
 
 /// An encoder for applying a non-fallible transformation.
 ///
-/// The result of [`crate::encode::combinators::EncoderExt::contra_map`].
+/// The result of [`crate::encode::EncoderExt::contra_map`].
 #[must_use = "encoders do nothing unless used"]
 #[derive(Debug)]
 pub struct EncoderContraMap<C, F> {
@@ -15,7 +15,7 @@ pub struct EncoderContraMap<C, F> {
 }
 
 impl<C, F> EncoderContraMap<C, F> {
-    pub(in crate::encode::combinators) fn new(inner: C, f: F) -> Self {
+    pub(in crate::encode) fn new(inner: C, f: F) -> Self {
         Self { inner, f }
     }
 }
@@ -36,7 +36,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::encode::combinators::EncoderExt;
+    use crate::encode::EncoderExt;
     use bytes::BufMut;
 
     #[test]
