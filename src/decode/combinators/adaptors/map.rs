@@ -80,8 +80,6 @@ mod tests {
 
     #[test]
     fn decode_map() -> anyhow::Result<()> {
-        #[derive(Debug, PartialEq, Eq)]
-        struct Device(u8);
         let mut decoder = uint8().map(Device);
 
         let mut src = BytesMut::from("\x01");
@@ -92,4 +90,7 @@ mod tests {
 
         Ok(())
     }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Device(u8);
 }
