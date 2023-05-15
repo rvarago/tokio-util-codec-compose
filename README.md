@@ -66,15 +66,7 @@ fn socks_request_decoder() -> impl Decoder<Item = SocksRequest, Error = anyhow::
         .then(port())
         .then(ipv4())
         .then(user_id())
-        .map(
-            |((((version, command), destination_port), destination_ip), user_id)| SocksRequest {
-                version,
-                command,
-                destination_port,
-                destination_ip,
-                user_id,
-            },
-        )
+        .map(from_parts)
         .map_err(|e| anyhow::format_err!("could not decode socks request, reason: {e}"))
 }
 
@@ -92,6 +84,20 @@ fn port() -> impl Decoder<Item = Port, Error = io::Error> {
 
 fn user_id() -> impl Decoder<Item = String, Error = tokio_util::codec::AnyDelimiterCodecError> {
     delimited_by([b'\x00'], 255).map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+}
+
+type SocksRequestParts = ((((Version, Command), Port), Ipv4Addr), String);
+
+fn from_parts(
+    ((((version, command), destination_port), destination_ip), user_id): SocksRequestParts,
+) -> SocksRequest {
+    SocksRequest {
+        version,
+        command,
+        destination_port,
+        destination_ip,
+        user_id,
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
