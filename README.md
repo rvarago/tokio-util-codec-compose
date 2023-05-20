@@ -12,6 +12,8 @@ Decoding communication protocols from byte streams usually involves the combinat
 
 However, we may find ourselves repeating the same sequence of decoding steps multiple times and possibly judging their correctness only as part of a larger sequence, not in terms of the individual steps; again multiple times.
 
+A similar, yet perhaps less complicate, scenario happens to encoding.
+
 To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communication protocols, for both stateless and stateful protocols.
 
 ## Features
@@ -22,7 +24,6 @@ To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-
 ## Roadmap
 
 - Add more combinators
-- Add support for encoding, e.g. `contra_map`
 - Flatten nested tuples
 
 ## Examples
@@ -37,7 +38,7 @@ into a state-machine which explicitly state tracking, which may get tedious.
 For some decoding patterns, you can leverage the compositional operations provided by this library, you can build complex decoders
 out of simpler building blocks that you can develop, test, and reason about, in isolation.
 
-Decoding a SOCKS v4 CONNECT request with no validation interleaved with decoding:
+As an example, here's a decoder for SOCKS v4 CONNECT requests with validation interleaved with decoding:
 
 ```rust
 use tokio_util_codec_compose::{
