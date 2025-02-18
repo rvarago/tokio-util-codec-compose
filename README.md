@@ -2,19 +2,18 @@
 
 [![Check](https://github.com/rvarago/tokio-util-codec-compose/actions/workflows/check.yml/badge.svg)](https://github.com/rvarago/tokio-util-codec-compose/actions/workflows/check.yml)
 
-A Rust library with building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs
+A Rust library with building blocks for composing [tokio-util](https://docs.rs/tokio-util/latest/tokio_util) codecs.
 
 > This library was inspired by [scodec](https://github.com/scodec/scodec).
 
 ## Overview
 
-Decoding communication protocols from byte streams usually involves the combination of multiple steps, e.g. decode the header and then the payload. Also, decoders often have state, e.g. we have multiple decoders for the payload where we select the appropriate one based on the header.
+Decoding wire protocols from byte streams usually involves the combination of multiple steps, e.g. decode the header then the payload. Also, decoders often carry state, e.g. we may have multiple decoders for multiple types of payload where we select the appropriate one based on the header.
 
-However, we may find ourselves repeating the same sequence of decoding steps multiple times and possibly judging their correctness only as part of a larger sequence, not in terms of the individual steps; again multiple times.
+However, we may find ourselves repeating the same sequence of decoding steps over and over again, possibly asserting correctness only as part of larger sequences, instead of the individual steps.
+(A similar, yet perhaps less complicated, scenario happens when encoding.)
 
-A similar, yet perhaps less complicate, scenario happens to encoding.
-
-To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communication protocols, for both stateless and stateful protocols.
+To tackle this, `tokio-util-codec-compose` library builds atop the great `tokio-util` and encapsulates some patterns I have seen when implementing codecs for communication protocols, both stateless and stateful.
 
 ## Features
 
