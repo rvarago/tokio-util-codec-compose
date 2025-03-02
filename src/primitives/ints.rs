@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn u8_decode() -> Result<()> {
         check(CheckOpts {
-            decoder: U8::default(),
+            decoder: U8,
             src: BytesMut::from("\x2A\x00\x01\x02\x03"),
             expected_output: 0x2A,
             expected_remainder: BytesMut::from("\x00\x01\x02\x03"),
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn u16be_decode() -> Result<()> {
         check(CheckOpts {
-            decoder: U16BE::default(),
+            decoder: U16BE,
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
             expected_output: 0x2A3B,
             expected_remainder: BytesMut::from("\x01\x02\x03"),
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn u16le_decode() -> Result<()> {
         check(CheckOpts {
-            decoder: U16LE::default(),
+            decoder: U16LE,
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
             expected_output: 0x3B2A,
             expected_remainder: BytesMut::from("\x01\x02\x03"),
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn u32be_decode() -> Result<()> {
         check(CheckOpts {
-            decoder: U32BE::default(),
+            decoder: U32BE,
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
             expected_output: 0x2A3B_0102,
             expected_remainder: BytesMut::from("\x03"),
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn u32le_decode() -> Result<()> {
         check(CheckOpts {
-            decoder: U32LE::default(),
+            decoder: U32LE,
             src: BytesMut::from("\x2A\x3B\x01\x02\x03"),
             expected_output: 0x0201_3B2A,
             expected_remainder: BytesMut::from("\x03"),
