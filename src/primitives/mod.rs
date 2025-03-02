@@ -10,27 +10,27 @@ use tokio_util::codec::Decoder;
 
 /// Shorthand to construct an [`ints::U8`].
 pub fn uint8() -> ints::U8 {
-    ints::U8::default()
+    ints::U8
 }
 
 /// Shorthand to construct an [`ints::U16BE`].
 pub fn uint16_be() -> ints::U16BE {
-    ints::U16BE::default()
+    ints::U16BE
 }
 
 /// Shorthand to construct an [`ints::U16LE`].
 pub fn uint16_le() -> ints::U16LE {
-    ints::U16LE::default()
+    ints::U16LE
 }
 
 /// Shorthand to construct an [`ints::U32BE`].
 pub fn uint32_be() -> ints::U32BE {
-    ints::U32BE::default()
+    ints::U32BE
 }
 
 /// Shorthand to construct an [`ints::U32LE`].
 pub fn uint32_le() -> ints::U32LE {
-    ints::U32LE::default()
+    ints::U32LE
 }
 
 /// Decoder for an [`Ipv4Addr`] as a sequence of four contiguous [`u8`].
