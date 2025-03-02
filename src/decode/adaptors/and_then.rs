@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn decode_and_then_first_fail() {
-        let mut decoder = DecoderFail::default().and_then(|_| uint8());
+        let mut decoder = DecoderFail.and_then(|_| uint8());
 
         let mut src = BytesMut::from("\x01\x02\x03");
         let err = decoder.decode(&mut src);
@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn decode_and_then_second_fail() {
-        let mut decoder = uint8().and_then(|_| DecoderFail::default());
+        let mut decoder = uint8().and_then(|_| DecoderFail);
 
         let mut src = BytesMut::from("\x01\x02\x03");
         let err = decoder.decode(&mut src);
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(src, BytesMut::from("\x02\x03"));
     }
 
-    #[derive(Debug, Default)]
+    #[derive(Debug)]
     struct DecoderFail;
     impl Decoder for DecoderFail {
         type Item = u16;
